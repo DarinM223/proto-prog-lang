@@ -1,0 +1,14 @@
+.number {
+}
+
+.if, .then, .else, .fun, .let, .in {
+  color: slateblue;
+}
+
+.ident {
+  color: maroon;
+}
+
+.comment {
+  color: green;
+}

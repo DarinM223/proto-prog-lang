@@ -1,0 +1,360 @@
+<html>
+  <head>
+    <title>Warm-Up: Calculator Language</title>
+
+    <link rel="stylesheet" href="../lib/codemirror.css"></link>
+    <link rel="stylesheet" href="../common.css"></link>
+    <link rel="stylesheet" href="../tests.css"></link>
+    <link rel="stylesheet" href="../playground.css"></link>
+    <link rel="stylesheet" href="syntax-highlighting.css"></link>
+
+    <script src="../lib/helpers.js"></script>
+    <script src="../lib/lang.js"></script>
+    <script src="../lib/tests.js"></script>
+    <script src="../lib/IndentingOutputStream.js"></script>
+    <script src="../lib/playground.js"></script>
+
+    <script src="../lib/jquery-2.1.1.min.js"></script>
+    <script src="../lib/codemirror.js"></script>
+
+    <script type="text/ohm-js">
+
+C {
+
+  Prog
+    = NonemptyListOf<Expr, ";">
+
+  Expr
+    = SetExpr
+
+  SetExpr
+    = ident "=" SetExpr  -- set
+    | AddExpr
+
+  AddExpr
+    = AddExpr "+" MulExpr  -- plus
+    | AddExpr "-" MulExpr  -- minus
+    | MulExpr
+
+  MulExpr
+    = MulExpr "*" ExpExpr  -- times
+    | MulExpr "/" ExpExpr  -- divide
+    | ExpExpr
+
+  ExpExpr
+    = ExpExpr "^" PriExpr  -- exp
+    | PriExpr
+
+  PriExpr
+    = "(" Expr ")"  -- paren
+    | number
+    | ident
+
+  // Lexical rules
+
+  number (a number)
+    = "-"? digit+ ("." digit+)?  -- wholeAndFrac
+    | "-"? "." digit+            -- onlyFrac
+
+  ident  (an identifier)
+    = letter alnum*
+
+  space
+   += comment
+
+  comment
+    = "/*" (~"*/" any)* "*/"  -- multiLine
+    | "//" (~"\n" any)*       -- singleLine
+
+  tokens
+    = (number | ident | comment | any)*
+
+}
+
+    </script>
+    <script src="../lib/ohm.min.js"></script>
+
+    <script src="C.js"></script>
+    <script src="classes.js"></script>
+    <script src="prettyPrint.js"></script>
+  </head>
+  <body>
+    <everything>
+      <header>
+        <part>Warm-up:</part>
+        <descr>Calculator Language</descr>
+        <detail>(an interpreter)</detail>
+      </header>
+      <abstract>
+        In this warm-up exercise, you will write an interpreter for a simple calculator language.
+        Our aim is to get you to start programming in JavaScript, and prepare you for the first
+        two homework assignments, which will have a very similar structure.
+      </abstract>
+      <section>
+        <sectionHeader>
+          <span>Language Definition</span>
+        </sectionHeader>
+        <p>
+          In this exercise, you will write an interpreter for a simple calculator language.
+          Let&rsquo;s begin by taking a look at the syntax of expressions:
+          <table class="syntax">
+            <tr>
+              <th></th>
+              <th>Concrete Syntax</th>
+              <th>JS AST</th>
+            </tr>
+            <tr>
+              <td>e ::=</td>
+              <td>
+                <multival>
+                  <div style="text-align: center;">
+                    n
+                  </div>
+                  <div style="text-align: center;">
+                    e<sub>1</sub> <code>+</code> e<sub>2</sub>
+                  </div>
+                  <div style="text-align: center;">
+                    e<sub>1</sub> <code>-</code> e<sub>2</sub>
+                  </div>
+                  <div style="text-align: center;">
+                    e<sub>1</sub> <code>*</code> e<sub>2</sub>
+                  </div>
+                  <div style="text-align: center;">
+                    e<sub>1</sub> <code>/</code> e<sub>2</sub>
+                  </div>
+                  <div style="text-align: center;">
+                    e<sub>1</sub> <code>^</code> e<sub>2</sub>
+                  </div>
+                </multival>
+              </td>
+              <td>
+                <div>
+                  <code>new Num(</code>n<code>)</code>
+                </div>
+                <div>
+                  <code>new Add(</code>e<sub>1</sub><code>,</code> e<sub>2</sub><code>)</code>
+                </div>
+                <div>
+                  <code>new Sub(</code>e<sub>1</sub><code>,</code> e<sub>2</sub><code>)</code>
+                </div>
+                <div>
+                  <code>new Mul(</code>e<sub>1</sub><code>,</code> e<sub>2</sub><code>)</code>
+                </div>
+                <div>
+                  <code>new Div(</code>e<sub>1</sub><code>,</code> e<sub>2</sub><code>)</code>
+                </div>
+                <div>
+                  <code>new Pow(</code>e<sub>1</sub><code>,</code> e<sub>2</sub><code>)</code>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>n ::=</td>
+              <td colspan="2" style="margin-left: 10pt; text-align: center;">
+                <text>a JavaScript number, e.g., <code>42</code></text>
+              </td>
+            </tr>
+          </table>
+          The left-hand column of the table above shows the <i>concrete syntax</i> of expressions,
+          i.e., the way a programmer writes expressions. For example, <code>1+2*3</code> is a valid
+          expression in our language.
+        </p>
+        <p>
+          <sideBar>
+            Parsing is covered in other classes, e.g., CS132 (Compilers). For completeness, we
+            will also spend a lecture or two on the subject.
+          </sideBar>
+          The first step of an interpreter (and related tools like compilers) is typically to
+          <i>parse</i> the program. A parser ensures that the given program is syntactically valid
+          and, if so, produces a tree representation of the program, which is called an <i>abstract
+          syntax tree</i>, or AST. This tree unambiguously represents the program, after for example
+          taking into account the operator precedence and associativity rules of the language
+          (which, in case you were wondering, are not shown in the table above). Parsing is a
+          fascinating subject in its own right, but this course is not about syntax &mdash; our
+          focus will be on techniques for rapidly prototyping the <i>semantics</i> of programming
+          languages. So rather than make you write your own parsers, we will always provide them for
+          you. (In case you&rsquo;re wondering, the parser for this exercise is generated from the
+          <a href="http://github.com/cdglabs/ohm">Ohm</a> grammar in
+          <a id="pageSourceAnchor">this page</a>, and the set of <i>semantic actions</i> that
+          produce ASTs is <a href="C.js">here</a>.)
+          <script>
+
+ pageSourceAnchor.setAttribute('href', 'view-source:' + window.location.href);
+
+          </script>
+        </p>
+        <p>
+          The right-hand column of the table above shows the format of the ASTs that are produced by
+          our parser. The classes that we use to represent AST nodes (<code>Num</code>,
+          <code>Add</code>, <code>Sub</code>, etc.) are declared in <a href="classes.js">this
+          file</a>.
+        </p>
+        <p>
+          <sideBar style="margin-top: -40pt;">
+            <img style="display: block; margin: auto;" src="1plus2times3.png">
+          </sideBar>
+    	  For example, to create the AST for the expression <code>1+2*3</code>, we evaluate
+          the JavaScript expression
+      	  <code>new Add(new Num(1), new Mul(new Num(2), new Num(3)))</code>. The resulting tree
+          is shown on the right. Note that the table at the top of this page provides the names
+          of the fields that can be used to access the components of each AST node: <code>Add</code>
+          nodes have fields called <code>e1</code> and <code>e2</code>, <code>Num</code> nodes
+          have a field called <code>n</code>, and so on. These fields are the edges in the tree
+          diagram.
+        </p>
+        <h3>But wait, there&rsquo;s more!</h3>
+        <p>
+          To make our calculator language a little more interesting, let&rsquo;s extend it with
+          support for variables. We can do this by defining a <i>program</i> to be a sequence of
+          expressions, and adding new syntax for referencing and assigning to variables:
+        </p>
+        <p style="width: 900px;">
+          <table class="syntax" style="width: 750px">
+            <tr>
+              <th></th>
+              <th><nobr>Concrete Syntax</nobr></th>
+              <th>JS AST</th>
+              <th>Semantics</th>
+            </tr>
+            <tr>
+              <td valign="top"><nobr>p ::=</nobr></td>
+              <td valign="top" style="text-align: center;">
+                <div><nobr>
+                  e<sub>1</sub><code>;</code> e<sub>2</sub><code>;</code> &hellip;<code>;</code>
+                  e<sub>n</sub>
+                </nobr></div>
+              </td>
+              <td valign="top">
+                <nobr><code>new Prog([</code>e<sub>1</sub><code>,</code> e<sub>2</sub><code>,</code>
+                &hellip;<code>,</code> e<sub>n</sub><code>])</code></nobr>
+              </td>
+              <td>
+                <text>
+                  Evaluates each expression in order, and produces the value of the last expression.
+                </text>
+              </td>
+            </tr>
+            <tr>
+              <td>e ::=</td>
+              <td style="text-align: center;">
+                <multival>
+                  <div style="text-align: center; opacity: .5;">
+                    n
+                  </div>
+                  <div style="text-align: center; opacity: .5;">
+                    e<sub>1</sub> <code>+</code> e<sub>2</sub>
+                  </div>
+                  <div style="opacity: .5;">&hellip;</div>
+                  <div style="height: 44pt;">x</div>
+                  <div style="height: 36pt;">x <code>=</code> e</div>
+                </multival>
+              </td>
+              <td>
+                <div style="opacity: .5;">
+                  <code>new Num(</code>n<code>)</code>
+                </div>
+                <div style="opacity: .5;">
+                  <code>new Add(</code>e<sub>1</sub><code>,</code> e<sub>2</sub><code>)</code>
+                </div>
+                <div style="opacity: .5;">&hellip;</div>
+                <div style="height: 44pt;">
+                  <code>new Ref(</code>x<code>)</code>
+	              </div>
+                <div style="height: 36pt;">
+                  <code>new Assign(</code>x<code>, </code>e<code>)</code>
+                </div>
+              </td>
+              <td>
+                <div style="height: 58pt;">&nbsp;</div>
+                <div style="height: 44pt;">
+                  <text>
+                    Produces the current value of</text> x <text>, or<br>
+                    <code>0</code> if</text> x <text> has not been assigned a value.
+                  </text>
+                </div>
+                <div style="height: 36pt;">
+                  <text>
+                    Evaluates</text> e <text>, stores the result in</text> x<text>, and
+                    produces the new value of</text> x<text>.
+                  </text>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><nobr>x ::=</nobr></td>
+              <td><nobr><text>an identifier, e.g., <code>sum</code></text></nobr></td>
+              <td><text>a string, e.g., <code>"sum"</code></text></td>
+            </tr>
+          </table>
+          <img style="float: right; margin-left: 10pt;" src="prog.png">
+	  Our newly-extended calculator language lets us write programs like this one:
+          <codeBlock>x = 2;
+y = 3 * x;
+y + x</codeBlock>which should evaluate to <code>8</code>.
+        </p>
+        <p>
+          The AST for this example program is shown on the right. Note that the <code>Prog</code>
+          node has a single field whose value is an array of expression ASTs &mdash;
+          <code>Assign</code>s, <code>Add</code>s, etc. That field is called <code>es</code> because
+          in our description of the abstract syntax (in the table above) that array was written as
+          <nobr><code>[</code>e<sub>1</sub><code>,</code> e<sub>2</sub><code>,</code>
+          &hellip;<code>,</code> e<sub>n</sub><code>]</code></nobr>, i.e., it is an array of
+          &ldquo;<code>e</code>&rdquo;s. Similarly, if it had been an array of identifiers,
+          <nobr><code>[</code>x<sub>1</sub><code>,</code> x<sub>2</sub><code>,</code>
+          &hellip;<code>,</code> x<sub>n</sub><code>]</code></nobr>, it would have been called
+          <code>xs</code>. We will use this convention throughout the course.
+        </p>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>The Interpreter</span>
+        </sectionHeader>
+        <p>
+          Your job is to write an interpreter for our calculator language. The entry-point to
+          your interpreter will be a function called <code>interp</code> that takes the AST of
+          a program and returns the value that it produces:
+          <codeBlock style="text-indent: 0;">function interp(ast) {
+  <comment>// <text>do your thing!</text></comment>
+}</codeBlock>
+        </p>
+        <p>
+          We have included a file called <a href="interp.js">interp.js</a> where you should do
+          all your work. Also, at the bottom of this page, you will see some unit tests for your
+          implementation &mdash; these will run automatically every time you refresh the page.
+          Last but not least, we have also provided a &ldquo;playground&rdquo; where you can type
+          in programs, see their corresponding ASTs, and see what value your interpreter produces.
+        </p>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Unit Tests</span>
+        </sectionHeader>
+        <p>
+          Here are a few unit tests to get you started. You can (and should!) add your own test
+          cases, too. How? Just edit <a href="tests.js">tests.js</a>; the format is pretty
+          self-explanatory.
+        </p>
+        <script src="interp.js"></script>
+        <script>
+
+C.evalAST = interp;
+
+        </script>
+        <script src="tests.js"></script>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Playground</span>
+        </sectionHeader>
+        <script>
+
+insertPlayground(
+    C,
+    "6 * 7"
+);
+
+        </script>
+      </section>
+    </everything>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+.number {
+  color: slateblue;
+}
+
+.ident {
+  color: maroon;
+}
+
+.comment {
+  color: green;
+}

@@ -1,0 +1,29 @@
+@import url(et-book.css);
+
+@import url(https://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700,700italic);
+@import url(https://fonts.googleapis.com/css?family=Inconsolata:400,700);
+@import url(https://fonts.googleapis.com/css?family=Bangers);
+
+@font-face {
+  font-family: "Komika Hand";
+  src: url(Komika_Hand.ttf);
+}
+
+@font-face {
+  font-family: "Komika Hand";
+  src: url(Komika_Hand_Bold.ttf);
+  font-weight: bold;
+}
+
+@font-face {
+  font-family: "Komika Hand";
+  src: url(Komika_Hand_Italic.ttf);
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Komika Hand";
+  src: url(Komika_Hand_Bold_Italic.ttf);
+  font-weight: bold;
+  font-style: italic;
+}

@@ -1,0 +1,687 @@
+<html>
+  <head>
+    <title>Getting Started: JavaScript Primer</title>
+
+    <link rel="stylesheet" href="../lib/codemirror.css"></link>
+    <link rel="stylesheet" href="../common.css"></link>
+    <link rel="stylesheet" href="../tests.css"></link>
+    <link rel="stylesheet" href="../playground.css"></link>
+
+    <script src="../lib/helpers.js"></script>
+    <script src="../lib/lang.js"></script>
+    <script src="../lib/tests.js"></script>
+    <script src="../lib/playground.js"></script>
+
+    <script src="../lib/jquery-2.1.1.min.js"></script>
+    <script src="../lib/codemirror.js"></script>
+  </head>
+  <body>
+    <everything>
+      <header>
+        <part>Getting Started:</part>
+        <descr>JavaScript Primer</descr>
+        <detail style="display: block;">or: How I learned to stop worrying and love the web browser</detail>
+      </header>
+      <abstract>
+        <p>
+          All of the projects in this class will be in JavaScript, and we expect you to pick up the
+          language as we go along. This is a short introduction to get you started.
+          For a more in-depth introduction to JavaScript, we recommend the first 100 pages
+          or so of
+          <a href="http://www.amazon.com/JavaScript-Good-Parts-Douglas-Crockford/dp/0596517742">
+          JavaScript: The Good Parts</a>, by Doug Crockford.
+        </p>
+        <p style="text-indent: 0;">
+          <b>Note:</b> There are several versions of JavaScript out there. The particular version
+          we&rsquo;re talking about here is
+          <a href="http://www.ecma-international.org/ecma-262/6.0/">ECMAScript 6</a> in
+          <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Strict_mode">
+          strict mode</a>, which is a restricted variant of the language with somewhat saner
+          semantics.
+        </p>
+      </abstract>
+      <section>
+        <sectionHeader>
+          <span>Motivation</span>
+        </sectionHeader>
+        <p>
+          Who in their right mind would prototype a programming language in JavaScript?!? It&rsquo;s
+          really not as crazy as it sounds. For starters, JavaScript is a powerful and flexible
+          dynamic language with decent support for OO and functional programming. Granted, there are
+          better programming languages out there that you could use. But what makes JavaScript an
+          interesting option is the fact that it is the language of the web browser&hellip; and
+          <em>everyone</em> has a web browser.
+        </p>
+        <p>
+          When you prototype a programming language in the web browser:
+          <ul>
+            <li><b>You make it easy for people to try it out.</b> Let&rsquo;s face it: only a small
+              fraction of the people who are interested in a new programming language will be
+              interested enough to go through the hassle of downloading and installing a compiler,
+              VM, etc. so that they can play with it. Navigating to a web-based interactive demo
+              of the language is a much smaller investment, one that people are generally more
+              willing to make.</li>
+            <li><b>You make it easy for people to share it.</b> Someone who plays with your demo and
+              finds it interesting can send the URL to other potentially interested people, post it in
+              a blog, etc.</li>
+            <li>As a bonus, <b>you get access to a rich multimedia environment</b> &mdash; the
+              <a href="https://en.wikipedia.org/wiki/Document_Object_Model">DOM</a>,
+              <a href="https://en.wikipedia.org/wiki/Canvas_element">canvas</a>,
+              <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers">web workers</a>, etc. &mdash; with plenty of
+              opportunities for you to create useful <em>domain-specific languages</em>
+              (DSLs).</li>
+          </ul>
+        </p>
+        <p>
+          <sideBar>
+            In this class, you will learn how to write your own <em>source-to-source translators</em>,
+            like the compilers of these languages.
+          </sideBar>
+          As you probably already know, there are newer and trendier alternatives to JavaScript out
+          there. For example,
+          <a href="http://coffeescript.org/">CoffeeScript</a> and
+          <a href="http://www.typescriptlang.org/">TypeScript</a> are languages that compile to
+          JavaScript and give the programmer access to all of the good stuff that&rsquo;s in the web
+          browser. While we have nothing against these languages, we encourage you to do our
+          assignments in plain old JavaScript. It is, after all, the &ldquo;assembly language&rdquo;
+          of the web, so a programming language hacker should know it well. The people who
+          implemented CoffeeScript and TypeScript certainly do.
+        </p>
+        <p>
+          Alright, that&rsquo;s enough motivation. Let&rsquo;s dive in.
+        </p>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Objects</span>
+        </sectionHeader>
+        <p>
+          JavaScript&rsquo;s objects are dictionaries that map property names to values. You can
+          <b>create an object</b> by calling a constructor, e.g.,
+          <codeBlock>new Object()</codeBlock> or by writing an object literal, e.g.,
+          <codeBlock><sideBar><img src="polo.jpg" style="display: block; width: 120px; margin: -20px auto 0;"></sideBar>var daddysShirt = {
+    type: 'polo',
+    color: 'white',
+    numButtons: 3
+};</codeBlock>
+        </p>
+        <p>
+          To <b>access and assign values to the properties of an object</b>, you use the
+          <code>.</code> operator, e.g.,
+          <codeBlock><sideBar>Evaluates to <code>'white'</code>.</sideBar>daddysShirt.color</codeBlock>
+          and
+          <codeBlock><sideBar><img src="guayabera.jpg" style="display: block; width: 130px; margin: -50px auto 0;"></sideBar>daddysShirt.type = 'guayabera';
+daddysShirt.numButtons = 7;
+daddysShirt.brand = 'Banana Republic';</codeBlock>
+          When you assign a value to a property of an object, that property will be
+          added automatically if the object doesn&rsquo;t already have it. And if you don&rsquo;t
+          know the name of a property at compile time, there&rsquo;s also a square bracket syntax
+          that lets you compute the name dynamically, e.g.,
+          <codeBlock>var propName = 'num' + 'Buttons';
+<sideBar>Evaluates to <code>7</code>.</sideBar>daddysShirt[propName];</codeBlock>
+          Property names are always strings. If you try to access or assign to a non-string
+          property of an object, e.g.,
+          <codeBlock>var someObject = { foo: 42, bar: 'hello world' };
+daddysShirt[someObject];</codeBlock>
+          the non-string value will be implicitly converted to a string via its
+          <code>toString()</code> method. In the admittedly nonsensical example above,
+          <code>someObject</code>&rsquo;s
+          <code>toString()</code> returns <code>'[object Object]'</code>.<sideBar>Yup, the default
+          <code>toString()</code> is pretty useless.</sideBar>
+          Since <code>daddysShirt</code> does not have a property with that name,
+          <code>daddysShirt[someObject]</code> will evaluate to the special value
+          <code>undefined</code>.
+        </p>
+        <p>
+          Last but not least, you can <b>remove a property</b> using the <code>delete</code>
+          statement. For example, after<codeBlock>delete daddysShirt.color;</codeBlock>
+          the expression <code>daddysShirt.color</code> will evaluate to <code>undefined</code>.
+        </p>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Delegation</span>
+        </sectionHeader>
+        <p>
+          JavaScript is a <em>prototype-based</em> language: every object has a prototype
+          from which it may inherit properties. For example, the prototype of all strings is
+          <code>String.prototype</code>, which is where methods like <code>indexOf</code> and
+          <code>substr</code> are defined. (More on these methods, and how methods work, later.)
+        <p>
+          <sideBar><img src="delegation1.png" style="margin: -40px auto 0;"></sideBar>
+          When people say that an object <em>delegates to</em> its prototype, they&rsquo;re talking
+          about the <b>property look-up</b> operation. Here&rsquo;s how the <em>prototype chain</em>
+          is used for property look-up: if you look up the value of a property <code>p</code> in
+          <code>obj</code> and <code>obj</code> doesn&rsquo;t have it, the JavaScript interpreter
+          will automatically look it up in <code>obj</code>&rsquo;s prototype. If
+          <code>obj</code>&rsquo;s prototype doesn&rsquo;t have a value for <code>p</code> either, the
+          search will continue in <code>obj</code>&rsquo;s prototype&rsquo;s prototype, and so on. If
+          we eventually reach <code>null</code>, which is not an object and therefore does not have
+          any properties, then <code>obj.p</code> will evaluate to the special value
+          <code>undefined</code>.
+        </p>
+        <p>
+          <img src="delegation2a.png" style="float: right; margin: 15px 0 15px 15px;">
+          You can use a function called <code>Object.create</code> to <b>create an object that
+          delegates to another object</b>. For example:
+          <codeBlock><comment>// My shirt is like daddy&rsquo;s shirt&hellip;</comment>
+var myShirt = Object.create(daddysShirt);</codeBlock>
+          The relationship between the two objects is illustrated on the right.
+          Note that <code>myShirt</code> does not have any properties of its own initially; it
+          inherits all of its properties from <code>daddysShirt</code>.
+          This means that if we change the value of any of <code>daddysShirt</code>&rsquo;s
+          properties, e.g., with <code>daddysShirt.numButtons = 8;</code> then
+          <code>myShirt</code>&rsquo;s value for that property will change, too.
+        </p>
+        <p>
+          <img src="delegation2b.png" style="float: right; margin: 15px 0 15px 15px;">
+          Now let&rsquo;s see what happens when we assign to one of the properties of
+          <code>myShirt</code>:
+          <codeBlock><comment>// &hellip; except it&rsquo;s blue.</comment>
+myShirt.color = 'blue';</codeBlock>
+          After the assignment above, <code>myShirt</code> gets its own <code>color</code> property
+          whose value is <code>'blue'</code>. <!--(This is what people mean when they say that
+          JavaScript&rsquo;s properties are <em>copy-on-write</em>.)--> This property <em>shadows</em>
+          the property that <code>myShirt</code> previously inherited from <code>daddysShirt</code>,
+          so future changes to <code>daddysShirt.color</code> will no longer effect the value of
+          <code>myShirt.color</code>.
+        </p>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Functions</span>
+        </sectionHeader>
+        <p>
+          To <b>declare a function</b>, you use the <code>function</code> keyword:
+          <codeBlock>function add(x, y) {
+  return x + y;
+}</codeBlock>
+          <sideBar>More on scoping later.</sideBar>
+          The example above declares a function called <code>add</code> in the current lexical scope.
+<!--
+          The syntax for calling functions is what you&rsquo;d expect: <code>add(5, 2)</code>
+          evaluates to <code>7</code>.
+-->
+        </p>
+        <p>
+          Functions are <em>first-class</em> values. This means you can store a function in a variable,
+          property, or an array. You can also return a function from another function or a method. Note
+          that you don&rsquo;t have to declare a function in order to get your hands on a function
+          value. In JavaScript, there are two ways to write function expressions. One looks similar to
+          a function declaration:
+          <codeBlock><sideBar>Evaluates to <code>6</code>.</sideBar>(<highlight>function(x) { return x + 1; }</highlight>)(5)</codeBlock>
+          The other, known as a <b>fat arrow function</b>, is more concise:
+          <codeBlock><sideBar>Evaluates to <code>[2, 3, 4]</code>.</sideBar>[1, 2, 3].map(<highlight>x => x + 1</highlight>)</codeBlock>
+          (There is another important difference between &ldquo;normal&rdquo; functions and fat arrow
+          functions, which we discuss in the section on <a href="#moreAboutFatArrows">methods</a>.)
+        </p>
+        <p>
+          Here&rsquo;s a more elaborate example that shows that a function can reference variables
+          from its enclosing environment:
+          <codeBlock>function makeCounter() {
+  var count = 0;
+  return function() { return count++; };
+}
+
+var counter = makeCounter();
+<sideBar>Evaluates to <code>0</code>.</sideBar>counter();
+<sideBar>Evaluates to <code>1</code>.</sideBar>counter();
+<sideBar>Evaluates to <code>2</code>.</sideBar>counter();</codeBlock>
+        </p>
+        <p>
+          In JavaScript, you can call a function with any number of arguments, no matter how many
+          <em>formal parameters</em> that function has in its declaration. A function can access
+          the arguments that were passed to it via its formal parameters or the <code>arguments</code>
+          object, which is, erm, not entirely unlike an array. The <code>arguments</code> can be used
+          to write <b>variadic functions</b>, i.e., functions that take a variable number of arguments.
+          For example:
+          <codeBlock>function sum(<comment>/* a, b, c, &hellip; */</comment>) {
+  var ans = 0;
+  for (var idx = 0; idx < arguments.length; idx++) {
+    ans += arguments[idx];
+  }
+  return ans;
+}
+
+sum(5, 10, -2);<sideBar>Evaluates to <code>13</code>.</sideBar></codeBlock>
+        </p>
+        <p style="text-indent: 0;">
+          <b>Warning!</b> The <code>arguments</code> object is array-like, but it&rsquo;s not really an
+          array. This is unfortunate for a number of reasons, not least of all because it means that
+          <code>arguments</code> doesn&rsquo;t support useful <code>Array</code> methods like
+          <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map"><code>map</code></a> and <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce"><code>reduce</code></a>. If you really want to use those methods,
+          here&rsquo;s a way to create an array that contains the arguments that were passed to your
+          function:
+          <codeBlock>var args = Array.prototype.slice.call(arguments);</codeBlock>
+          It&rsquo;s kludgy, but it does the trick. More on the <code>slice</code> and
+          <code>call</code> methods later.
+        </p>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Scoping</span>
+        </sectionHeader>
+        <p>
+          JavaScript has <a href="https://en.wikipedia.org/wiki/Scope_(computer_science)#Lexical_scope_vs._dynamic_scope">
+          <em>lexical scoping</em></a>, but it doesn&rsquo;t work the way you&rsquo;d expect. You
+          see, in most languages that are lexically-scoped, a <em>block statement</em>
+          (<code>{</code> &hellip; <code>}</code>) is a lexical scope. In JavaScript, the only thing
+          that is a lexical scope is a function.<sup style="color: #aaa;">*</sup>
+          <sidebar>
+            That&rsquo;s not completely true, I used a little didactic license there:
+            <code>catch</code> blocks also get their own lexical scope.
+          </sidebar>
+          <div style="display: inline-block; width: 350px; text-align: center;"> 
+            <b>So when you write this:</b>
+            <codeBlock style="text-align: left; display: inline-block;">function f(x) {
+
+  if (x > 5) {
+    <highlight>var y</highlight> = x * x;
+    &hellip;
+  }
+  &hellip;
+}</codeBlock></div>
+          <div style="display: inline-block; width: 350px; text-align: center;"> 
+            <b>What it really means is this:</b>
+            <codeBlock style="text-align: left; display: inline-block;">function f(x) {
+  <highlight>var y;</highlight>
+  if (x > 5) {
+    y = x * x;
+    &hellip;
+  }
+  &hellip;
+}</codeBlock></div>
+          Usually this isn&rsquo;t a problem, but it&rsquo;s something you should be aware of. And
+          if you&rsquo;re used to shadowing variable declarations, get ready to spend countless
+          hours debugging your programs and cursing
+          <a href="http://en.wikipedia.org/wiki/Brendan_Eich">Brendan Eich</a>!
+        </p>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Methods</span>
+        </sectionHeader>
+        <p>
+          A method is just a function that&rsquo;s stored in a property. For example, if we have:
+          <codeBlock>var aPoint = {
+    x: -2,
+    y: 5,
+    toString: function() {
+      return '(' + this.x + ',' + this.y + ')';
+    }
+};</codeBlock> then <code>aPoint.toString()</code> will evaluate to <code>'(-2,5)'</code>.
+        </p>
+        <p>
+          To evaluate a method call
+          <i>e<sub>recv</sub></i><code>.</code><i>m</i><code>(</code><i>e<sub>1</sub></i><code>,</code>
+          <i>e<sub>2</sub></i><code>,</code> &hellip;<code>,</code>
+          <i>e<sub>n</sub></i><code>)</code>, a JavaScript interpreter will:
+          <ul>
+            <li>evaluate <i>e<sub>recv</sub></i> to get the object that is the <em>receiver</em>
+              of the message,</li>
+            <li>evaluate the arguments,</li>
+            <li>look up the function that is stored in the receiver&rsquo;s <i>m</i> property,
+              and</li>
+            <li>call that function with the values of the arguments, and with the pseudo-variable
+              <code>this</code> bound to the receiver.</li>
+          </ul>
+        </p>
+        <p style="text-indent: 0;">
+          <b>Warning!</b> When you call a function the usual way, e.g., <sideBar>As opposed to a
+          method call, e.g., <code>o.m(1, 2)</code>.</sideBar><code>f(1, 2)</code>,
+          <code>this</code> gets bound to <code>undefined</code>. So if you declare a helper
+          function inside of a method &mdash; which seems like a reasonable thing to do! &mdash; it
+          won&rsquo;t work as you would expect:
+          <codeBlock>({
+  m1: function() {
+    <comment>// here, `this` is the receiver</comment>
+    this.m2();  <comment>// works</comment>
+
+    function helper() {
+      <comment>// but here, `this` is `undefined`</comment>
+      this.m2();  <comment>// ERROR!</comment>
+    }
+    helper();
+  },
+  m2: function() { &hellip; }
+}).m1();
+</codeBlock>
+          This is a subtle bug, and JavaScript programmers get bit by it all the time. The usual
+          work-around, once you realize that this is the problem, is to declare a local variable
+          called <code>self</code> through which the helper function can access the receiver:
+          <codeBlock>({
+  m1: function() {
+    <highlight>var self = this;</highlight>
+    function helper() {
+      <comment>// here, `this` is still `undefined`</comment>
+      <comment>// but we have access to the receiver through `self`</comment>
+      <highlight>self.m2();</highlight>  <comment>// works!</comment>
+    }
+    helper();
+  },
+  m2: function() { &hellip; }
+}).m1();
+</codeBlock>
+          <span id="moreAboutFatArrows"></span>
+          Another solution is to make <code>helper</code> a <b>fat arrow function</b>. Here&rsquo;s
+          what that looks like:
+          <codeBlock>({
+  m1: function() {
+    <highlight>var helper = () => this.m2();</highlight>  <comment>// works!</comment>
+    helper();
+  },
+  m2: function() { &hellip; }
+}).m1();
+</codeBlock>
+          This works because a fat arrow function captures not only the local variables, but also
+          <code>this</code> from its enclosing lexical scope.
+        </p>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Two More Ways to Call a Function</span>
+        </sectionHeader>
+        <p>
+          So far we&rsquo;ve seen two ways to call a function,
+          <ul>
+            <li>the &ldquo;function&rdquo; way, e.g., <code>f(1, 2)</code>, and</li>
+            <li>the &ldquo;method&rdquo; way, e.g., <code>obj.m(1, 2)</code></li>
+          </ul>
+          and we&rsquo;ve seen what happens with <code>this</code> for each of them.
+        </p>
+        <p>
+          There are two more ways to call a function in JavaScript that are worth mentioning. One is
+          through the function&rsquo;s <code>call</code> method, which is useful because it lets you
+          specify the object that should be bound to <code>this</code> when the function&rsquo;s
+          body is evaluated, e.g., <code>f.call(objThatWillBeThis, 1, 2)</code>.
+        </p>
+        <p>
+         The other way is through the function&rsquo;s <code>apply</code> method, which is like
+         <code>call</code> except that you pass the arguments as an array, e.g.,
+         <code>f.apply(objThatWillBeThis, [1, 2])</code>. This is useful if, at compile time, you
+         don&rsquo;t know how many arguments your code will pass to a method or function. As an
+         example, here&rsquo;s a function that takes a function as an argument, and returns another
+         function that behaves just like the original, but it also logs every call to the console:
+         <codeBlock>function logged(f) {
+  return function() {
+    console.log(f.name + ' was called');
+    return f.apply(this, arguments);
+  };
+}</codeBlock>
+         Note that <code>logged</code> works with any function, no matter the <em>arity</em>
+         (number of formal parameters): <codeBlock>function inc(x) {
+  return x + 1;
+}
+var loggedInc = logged(inc);
+loggedInc(5);<sideBar>Outputs <code>'inc was called'</code> to the console and returns <code>6</code>.
+</sideBar>
+
+function add(x, y) {
+  return x + y;
+}
+var loggedAdd = logged(add);
+loggedAdd(1, 2);<sideBar>Outputs <code>'add was called'</code> to the console and returns
+<code>3</code>.</sideBar></codeBlock>
+        </p>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>&ldquo;Classes&rdquo;</span>
+        </sectionHeader>
+        <p>
+          JavaScript does not have support for classes, but it does have a <em>syntactic sugar</em>
+          for declaring them. Under the hood, it&rsquo;s still all just objects, delegation, etc.
+          but the sugar really makes it feel like you&rsquo;re programming in a &ldquo;classy&rdquo;
+          language. Here&rsquo;s an example of a class declaration:
+          <codeBlock>class Point {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+
+  toString() {
+    return '(' + this.x + ',' + this.y + ')';
+  }
+}</codeBlock>
+          And here&rsquo;s its <em>desugaring</em>, i.e., what it really means:
+          <codeBlock>function Point(x, y) {
+  this.x = x;
+  this.y = y;
+}
+
+Point.prototype.toString = function() {
+  return '(' + this.x + ',' + this.y + ')';
+};</codeBlock>
+
+          To understand how this works, you first have to know what happens when you call a function
+          like a constructor, e.g., <code>new Point(1, 2)</code>:
+          <ul>
+            <li>The JavaScript interpreter creates an object that delegates to the function&rsquo;s
+              <code>prototype</code> property, e.g., <code>Object.create(Point.prototype)</code>.
+              Note that when you write a function, its <code>prototype</code> property automatically
+              gets initialized to a fresh
+              <sideBar>
+                Didactic license strikes again! It&rsquo;s not really a fresh object, but rather a
+                new object with a single property, <code>constructor</code>, whose value is the
+                function itself.
+              </sideBar>
+              object, i.e., the result of evaluating <code>new Object()</code>.</li>
+            <li>The interpreter then calls the function with <code>this</code> bound to the new
+              object.</li>
+            <li>
+              The value of the <code>new</code> expression will be that new object, <em>unless the
+              function returns an object</em>. (In which case, that object will be the value of the
+              <code>new</code> expression.)
+            </li>
+          </ul>
+        </p>
+        <p>
+          <img src="classes1.png" style="float: right; margin: 15px 0 15px 15px;">
+          The relationships among the <code>Point</code> &ldquo;class&rdquo;, the <code>Point</code>
+          prototype, and <code>Point</code> instances are illustrated on the right. Note that all
+          <code>Point</code>s delegate to <code>Point.prototype</code>, which makes it the ideal
+          place to store whatever properties they share, e.g., methods like <code>toString</code>.
+          You can see how this is done in the desugaring above.
+        </p>
+        <p style="text-indent: 0;">
+          <h3>Inheritance, <em>super-sends</em>, etc.</h3>
+        <p>
+          Here&rsquo;s what it looks like when you declare a subclass:
+          <codeBlock>class Point3D extends Point {
+  constructor(x, y, z) {
+    super(x, y);
+    this.z = z;
+  }
+
+  <comment>// Override</comment>
+  toString() {
+    return '(' + this.x + ',' + this.y + ',' + this.z + ')';
+  }
+}</codeBlock>
+          And here&rsquo;s (roughly) its desugaring:
+          <codeBlock>function Point3D(x, y, z) {
+  <comment>// Call Point's constructor with `this` bound to the new Point3D.</comment>
+  Point.call(this, x, y);
+
+  <comment>// Finish initializing the new instance.</comment>
+  this.z = z;
+}
+
+<comment>// Make Point3D's prototype delegate to Point's prototype, that
+// way it will inherits all of the methods of the superclass.</comment>
+Point3D.prototype = Object.create(Point.prototype);
+
+Point3D.prototype.toString = function() {
+  return '(' + this.x + ',' + this.y + ',' + this.z + ')';
+};</codeBlock>
+          The relationships among the <code>Point</code> and <code>Point3D</code>
+          &ldquo;classes&rdquo;, their prototypes, and their instances are illustrated below.
+          <img src="classes2.png" style="display: block; margin: 15px auto;">
+        </p>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Playground</span>
+        </sectionHeader>
+        <script>
+
+insertPlayground(
+    JS,
+    '6 * 7'
+);
+
+        </script>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Other Things Worth Talking About, a.k.a. TODO</span>
+        </sectionHeader>
+        <p>
+          <ul>
+            <li><code>var</code> vs. <code>const</code></li>
+            <li>control structures: <code>if</code>, <code>while</code>, <code>for</code>,
+              <code>try</code>/<code>catch</code>, <code>switch</code>, &hellip;</li>
+          </ul>
+        </p>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Reference</span>
+        </sectionHeader>
+        <p style="text-indent: 0;">
+          <b>Functional Programming</b>
+          <ul>
+            <li><code>[1,2,3].map(x => x + 1)</code> evaluates to <code>[2,3,4]</code>.</li>
+            <li><code>[1,2,3].reduce((x, y) => x + y, 0)</code> evaluates to <code>6</code>.</li>
+            <li><code>[1,2,3].filter(x => x > 1)</code> evaluates to <code>[2,3]</code>.</li>
+          </ul>
+        </p>
+        <p style="text-indent: 0;">
+          <b>Meta Stuff</b>
+          <ul>
+            <li>You can dynamically compile and evaluate a program using the <code>eval</code>
+              function. Calling <code>eval</code> is generally frowned upon (it&rsquo;s a huge
+              security hole!) but it can be very useful when you&rsquo;re prototyping a language via
+              <em>source-to-source translation</em>.</li>
+            <li>To test if <code>obj</code> has a property <code>p</code> that&rsquo;s not
+              inherited from its prototype: <code>obj.hasOwnProperty('p')</code>.</li>
+            <li>To get an array containing all of <code>obj</code>&rsquo;s &ldquo;own property&rdquo;
+              names: <code>Object.keys(obj)</code>.</li>
+            <li>To declare a method that can be accessed like a property:
+              <codeBlock>Object.defineProperty(obj, 'p', {
+  get: function() { &hellip; },
+  set: function(value) { &hellip; }
+});</codeBlock>
+            </li>
+            <li>Same thing, but inside a class declaration:
+              <codeBlock>class C {
+  &hellip;
+  get p() { &hellip; }
+  set p(value) { &hellip; }
+  &hellip;
+}</codeBlock>
+            </li>
+          </ul>
+        </p>
+        <p style="text-indent: 0;">
+          <b>Numbers</b>
+          <ul>
+            <li>All numbers in JavaScript are
+              <a href="http://en.wikipedia.org/wiki/Double-precision_floating-point_format">double-precision
+              floating point numbers</a>.</li>
+            <li>To test if <code>n</code> is a number: <code>typeof n === 'number'</code>.
+              <sidebar>
+                <p>
+                  Note that I&rsquo;m using the <em>strict equality</em> operator (<code>===</code>), not
+                  the <em>completely f***ed-up equality</em> operator (<code>==</code>). No one should
+                  ever use the latter, because it doesn&rsquo;t make any sense whatsoever.
+                  (See <a href="http://dorey.github.io/JavaScript-Equality-Table/">this page</a> to
+                  see just how crazy <code>==</code> is.)
+                </p>
+              </sidebar>
+            </li>
+            <li>Note that the test above will evaluate to <code>true</code> even for values like
+              <code>Number.POSITIVE_INFINITY</code> and <code>Number.NaN</code>.
+              <ul>
+                <li>To test if a number <code>n</code> is finite: <code>isFinite(n)</code>.</li>
+                <li>To test if a &ldquo;number&rdquo; <code>n</code> is not a number:
+                  <code>isNaN(n)</code>.</li>
+              </ul></li>
+            <li>To convert a string to a number, you can use JavaScript&rsquo;s <code>parseInt</code>
+              and <code>parseFloat</code> functions.
+              <ul>
+                <li>Each of these functions takes a string as an argument, and returns corresponding
+                  number, or <code>NaN</code> if the argument can&rsquo;t be parsed.</li>
+                <li>They don&rsquo;t mind if there are trailing characters, e.g.,
+                  <code>parseInt('23abc') === 23</code>.</li>
+              </ul>
+            </li>
+          </ul>
+        </p>
+        <p style="text-indent: 0;">
+          <b>Arrays</b>
+          <ul>
+            <li>To test if <code>arr</code> is an <code>Array</code>:
+              <code>Array.isArray(arr)</code>.</li>
+            <li>Number of elements in <code>arr</code>: <code>arr.length</code>.
+            <li>You can truncate or grow the array by assigning into its <code>length</code>
+              property.</li>
+            <li>Access the <code>i</code>th element: <code>arr[i]</code>.
+              <ul>
+                <li><code>undefined</code> if <code>i</code> is out of bounds.</li>
+                <li>Indices are <code>0</code>-based.</li>
+              </ul>
+            </li>
+            <li>Set the <code>i</code>th element: <code>arr[i] = value</code>.
+              <ul>
+                <li>If <code>i</code> &ge; <code>arr.length</code>, <code>arr.length</code> is updated
+                  automatically.</li>
+              </ul></li>
+            <li>Add a <code>newElement</code> to the end: <code>arr.push(newElement)</code>.</li>
+            <li>Remove the last element: <code>arr.pop()</code></li>
+            <li>Add <code>newElement</code> to the beginning: <code>arr.unshift(newElement)</code></li>
+            <li>Remove the first element: <code>arr.shift()</code>.</li>
+            <li>Insert <code>newElement</code> at <code>idx</code>:
+              <code>arr.splice(idx, 0, newElement)</code>.</li>
+            <li>Iterate over the array: <code>arr.forEach(x => { &hellip; })</code>.</li>
+          </ul>
+        </p>
+        <p style="text-indent: 0;">
+          <b>Strings</b>
+          <ul>
+            <li>To test if an object is a string: <code>typeof obj === 'string'</code>.</li>
+            <li>JavaScript strings are immutable.</li>
+            <li>You can write string literals with single or double quotes, e.g.,
+              <code>'hello world'</code> and <code>"foo"</code> are both valid string literals.</li>
+            <li>The <code>length</code> property of a string tells you how many characters are in
+              it.</li>
+            <li><code>String</code> indices are <code>0</code>-based.</li>
+            <li>To access a character, you can use square brackets (<code>s[5]</code>) or the
+              <code>charAt</code> method (<code>s.charAt(5)</code>).
+              <ul>
+                <li>The value of these expressions isn&rsquo;t a character &mdash; there&rsquo;s no
+                  such thing in JavaScript! &mdash; but rather a <code>String</code> of length
+                  <code>1</code>.</li>
+              </ul></li>
+            <li>Other useful methods:
+              <ul>
+                <li><code>s.indexOf(otherString)</code> returns the index of the first occurrence of
+                  <code>otherString</code> in <code>s</code>, or <code>-1</code> if it&rsquo;s not
+                  found.</li>
+                <li><code>s.substr(startIdx, length)</code> returns a substring of <code>s</code>.</li>
+                <li>&hellip;</li>
+              </ul></li>
+          </ul>
+        </p>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Acknowledgments</span>
+        </sectionHeader>
+        <p>
+          Thanks to Marko R&ouml;der for detailed feedback on this document.
+        </p>
+    </everything>
+  </body>
+</html>
+
