@@ -358,6 +358,7 @@ F.evalAST = interp;
                 <multival>
                   <div style="opacity: 0.5;">&hellip;</div>
                   <div>C<code>(</code>e<sub>1</sub><code>,</code> &hellip;<code>,</code> e<sub>n</sub><code>)</code></div>
+                  <div>C</div>
                   <div>
                     <code>match</code> e <code>with</code>
                     p<sub>1</sub> <code>-&gt;</code> e<sub>1</sub>
@@ -371,6 +372,10 @@ F.evalAST = interp;
               <td>
                 <div style="opacity: 0.5;">&hellip;</div>
                 <div><code>new Datum(</code>C<code>,</code> <code>[</code>e<sub>1</sub><code>,</code> &hellip;<code>,</code> e<sub>n</sub><code>])</code></div>
+               <div>
+                  <sidebar>Sugar for <i>C</i><code>()</code>.</sidebar>
+                  <code>new Datum()</code>
+                </div>
                 <div><code>new Match(</code>e<code>,</code> <code>[</code>p<sub>1</sub><code>,</code> &hellip; p<sub>n</sub><code>],</code> <code>[</code>e<sub>1</sub><code>,</code> &hellip;<code>,</code> e<sub>n</sub><code>])</code></div>
                 <div><code>new ListComp(</code>e<code>,</code> x<code>,</code> e<sub>list</sub> <text>[</text><code>,</code> e<sub>pred</sub><text>]</text><code>)</code></div>
                 <div><code>new Delay(</code>e<code>)</code></div>
@@ -385,6 +390,7 @@ F.evalAST = interp;
                   <div><code>_</code></div>
                   <div>x</div>
                   <div>C<code>(</code>p<sub>1</sub><code>,</code> &hellip;<code>,</code> p<sub>n</sub><code>)</code></div>
+                  <div>C</div>
                 </multival>
               </td>
 	      <td>
@@ -401,8 +407,14 @@ F.evalAST = interp;
                   <code>new Var(</code>x<code>)</code></div>
                 </div>
                 <div>
-                  <sidebar>Matches a <em>data value</em> of the specified form.</sidebar>
+                  <sidebar style="line-height: 1;">
+                    Matches a <em>data value</em> of the specified form.
+                  </sidebar>
                   <code>new Datum(</code>C<code>,</code> <code>[</code>p<sub>1</sub><code>,</code> &hellip;<code>,</code> p<sub>n</sub><code>])</code>
+                </div>
+                <div>
+                  <sidebar>Sugar for <i>C</i><code>()</code>.</sidebar>
+                  <code>new Datum(</code>C<code>,</code> <code>[])</code>
                 </div>
               </td>
             </tr>
