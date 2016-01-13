@@ -37,7 +37,14 @@ everything {
 }
 
 highlight {
-  background: #fffbcc;
+  box-shadow: inset 0 -5px 0 #fffbcc;
+}
+
+@media print {
+  highlight {
+    box-shadow: none;
+    border-bottom: 5px solid #fffbcc;
+  }
 }
 
 comment {
@@ -242,12 +249,22 @@ multival:before {
   height: 100%;
 }
 
+note,
 due {
   border: 2px dashed black;
   display: block;
+  margin: 0 auto 12px;
+}
+
+note {
+  margin-top: 12px;
+  background: #fffff8;
+  padding: 8pt;
+}
+
+due {
   width: 80%;
   text-align: center;
-  margin: 0 auto 12px;
-  padding: 4pt;
   background: #f8f884;
+  padding: 4pt;
 }

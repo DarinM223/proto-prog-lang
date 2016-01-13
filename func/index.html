@@ -163,7 +163,7 @@ F {
         calculator in the previous exercise. We&rsquo;ll start out with a small base language that
         supports arithmetic expressions, conditionals, multi-argument functions, and <b>let</b>
         expressions. Then we&rsquo;ll grow the language to support more advanced features like
-        <i>currying</i>, data structures, pattern matching, and list comprehensions.
+        <em>currying</em>, data structures, pattern matching, and list comprehensions.
       </abstract>
       <section>
         <sectionHeader>
@@ -193,7 +193,7 @@ F {
                   <div><code>fun</code> x<sub>1</sub> &hellip; x<sub>n</sub> <code>-&gt;</code> e</div>
                   <div>e<sub>f</sub> e<sub>1</sub> &hellip; e<sub>n</sub></div>
                   <div><code>let</code> x <code>=</code> e<sub>1</sub> <code>in</code> e<sub>2</sub></div>
-                  <div>e<sub>1</sub> op e<sub>2</sub></div>
+                  <div>e<sub>1</sub> <highlight>op</highlight> e<sub>2</sub></div>
                 </multival>
               </td>
               <td>
@@ -224,11 +224,11 @@ F {
           file</a>.
         </p>
         <p>
-          As in the calculator exercise, we have already written a parser
+          As in the calculator exercise, we have already written a <highlight>parser</highlight>
           <sidebar>
             Our parser is generated from the <a href="http://github.com/cdglabs/ohm">Ohm</a> grammar
-            in <a id="pageSourceAnchor">this page</a>, and the set of <i>semantic actions</i> that
-            produce ASTs is <a href="F.js">here</a>.
+            in <a id="pageSourceAnchor">this page</a>, and the set of <em>semantic actions</em>
+            that produce ASTs is <a href="F.js">here</a>.
           </sidebar>
           <script>
 
@@ -252,7 +252,7 @@ F.evalAST = interp;
         <p>
           <b>A note on evaluation.</b>
           The argument of your <code>interp</code> function will be an expression (as defined
-          above), and its return value will be a <i>value</i>. The language of values is defined
+          above), and its return value will be a <em>value</em>. The language of values is defined
           below:
         </p>
         <p>
@@ -271,7 +271,7 @@ F.evalAST = interp;
           </table>
         </p>
         <p>
-          <b>Unit tests.</b>
+          <highlight><b>Unit tests.</b></highlight>
           <sidebar>
             <b>Unit tests are not just for Fortune-500 companies, you know!</b> In fact, it&rsquo;s
             a <em>great idea</em> to write unit tests when you&rsquo;re prototyping or implementing
@@ -297,7 +297,7 @@ F.evalAST = interp;
         </p>
         <script src="hw1-tests.js"></script>
       </section>
-      <section>
+      <section id="hw2">
         <sectionHeader>
           <span>Homework 2: Extensions</span>
         </sectionHeader>
@@ -317,8 +317,9 @@ F.evalAST = interp;
               <b>let</b> should now have the same semantics as <b>let rec</b> in ML.
             </li>
             <li>
-              Modify <b>call</b> to support <i>currying</i>, i.e., if you pass fewer arguments than
-              the function requires, the result is a new function that takes the remaining arguments.
+              Modify <b>call</b> to support <em>currying</em>, i.e., if you pass fewer arguments
+              than the function requires, the result is a new function that takes the remaining
+              arguments.
             </li>
             <li>Augment your interpreter so that <b>data constructors</b>, which are simply
               identifiers that start with an uppercase letter, and can be used to build user-defined
@@ -400,7 +401,7 @@ F.evalAST = interp;
                   <code>new Var(</code>x<code>)</code></div>
                 </div>
                 <div>
-                  <sidebar>Matches a <i>data value</i> of the specified form.</sidebar>
+                  <sidebar>Matches a <em>data value</em> of the specified form.</sidebar>
                   <code>new Datum(</code>C<code>,</code> <code>[</code>p<sub>1</sub><code>,</code> &hellip;<code>,</code> p<sub>n</sub><code>])</code>
                 </div>
               </td>
@@ -444,7 +445,7 @@ insertPlayground(
         <p>
           What we&rsquo;ve got at this point is a prototype of a functional language that is very
           similar to ML. So go ahead and give yourself a good pat on the back, you deserve it!
-          This kind of <i>naive</i> implementation style, where you always favor simplicity over
+          This kind of <em>naive</em> implementation style, where you always favor simplicity over
           performance, is very useful to researchers and language designers because (i) it enables
           you to get something working quickly, and with minimal effort &mdash; something to think
           with! &mdash; and (ii) the simplicity of the prototype makes it easy for you to experiment
@@ -466,10 +467,9 @@ insertPlayground(
               language that is <a href="http://en.wikipedia.org/wiki/Lazy_evaluation">lazy</a> by
               default, like
               <a href="http://en.wikipedia.org/wiki/Haskell_(programming_language)">Haskell</a>.
-              Change the evaluation strategy of your language to make
-      it lazy.  
+              Change the evaluation strategy of your language to make it lazy.  
             <li>
-              Add <i>bindings</i> to some of the functionality that&rsquo;s available in the web
+              Add <em>bindings</em> to some of the functionality that&rsquo;s available in the web
               browser, e.g., so you can write programs that draw on a
               <a href="https://developer.mozilla.org/en-US/docs/Web/Guide/HTML/Canvas_tutorial">canvas
               element</a>, or dynamically add / modify DOM nodes to make web pages that are

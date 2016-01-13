@@ -74,18 +74,18 @@
         </p>
         <p>
           <sideBar>
-            In this class, you will learn how to write your own <em>source-to-source translators</em>,
-            like the compilers of these languages.
+            In this class, you will learn how to write your own <em>source-to-source
+            translators</em>, like the compilers of these languages.
           </sideBar>
           As you probably already know, there are newer and trendier alternatives to JavaScript out
           there. For example,
           <a href="http://coffeescript.org/">CoffeeScript</a> and
-          <a href="http://www.typescriptlang.org/">TypeScript</a> are languages that compile to
-          JavaScript and give the programmer access to all of the good stuff that&rsquo;s in the web
-          browser. While we have nothing against these languages, we encourage you to do our
-          assignments in plain old JavaScript. It is, after all, the &ldquo;assembly language&rdquo;
-          of the web, so a programming language hacker should know it well. The people who
-          implemented CoffeeScript and TypeScript certainly do.
+          <a href="http://www.typescriptlang.org/">TypeScript</a> are languages that
+          <highlight>compile to JavaScript</highlight> and give the programmer access to all of the
+          good stuff that&rsquo;s in the web browser. While we have nothing against these languages,
+          we encourage you to do our assignments in plain old JavaScript. It is, after all, the
+          &ldquo;assembly language&rdquo; of the web, so a programming language hacker should know
+          it well. The people who implemented CoffeeScript and TypeScript certainly do.
         </p>
         <p>
           Alright, that&rsquo;s enough motivation. Let&rsquo;s dive in.
@@ -126,8 +126,8 @@ daddysShirt[someObject];</codeBlock>
           the non-string value will be implicitly converted to a string via its
           <code>toString()</code> method. In the admittedly nonsensical example above,
           <code>someObject</code>&rsquo;s
-          <code>toString()</code> returns <code>'[object Object]'</code>.<sideBar>Yup, the default
-          <code>toString()</code> is pretty useless.</sideBar>
+          <code>toString()</code> returns <highlight><code>'[object Object]'</code></highlight>.
+          <sideBar>Yup, the default <code>toString()</code> is pretty useless.</sideBar>
           Since <code>daddysShirt</code> does not have a property with that name,
           <code>daddysShirt[someObject]</code> will evaluate to the special value
           <code>undefined</code>.
@@ -268,8 +268,8 @@ sum(5, 10, -2);<sideBar>Evaluates to <code>13</code>.</sideBar></codeBlock>
           (<code>{</code> &hellip; <code>}</code>) is a lexical scope. In JavaScript, the only thing
           that is a lexical scope is a function.<sup style="color: #aaa;">*</sup>
           <sidebar>
-            That&rsquo;s not completely true, I used a little didactic license there:
-            <code>catch</code> blocks also get their own lexical scope.
+            <sup style="color: #aaa;">*</sup> That&rsquo;s not completely true, I used a little
+            didactic license there: <code>catch</code> blocks also get their own lexical scope.
           </sidebar>
           <div style="display: inline-block; width: 350px; text-align: center;"> 
             <b>So when you write this:</b>
@@ -327,11 +327,11 @@ sum(5, 10, -2);<sideBar>Evaluates to <code>13</code>.</sideBar></codeBlock>
           </ul>
         </p>
         <p style="text-indent: 0;">
-          <b>Warning!</b> When you call a function the usual way, e.g., <sideBar>As opposed to a
-          method call, e.g., <code>o.m(1, 2)</code>.</sideBar><code>f(1, 2)</code>,
-          <code>this</code> gets bound to <code>undefined</code>. So if you declare a helper
-          function inside of a method &mdash; which seems like a reasonable thing to do! &mdash; it
-          won&rsquo;t work as you would expect:
+          <b>Warning!</b> When you call a function <highlight>the usual way</highlight>, e.g.,
+          <sideBar>As opposed to a method call, e.g., <code>o.m(1, 2)</code>.</sideBar>
+          <code>f(1, 2)</code>, <code>this</code> gets bound to <code>undefined</code>. So if you
+          declare a helper function inside of a method &mdash; which seems like a reasonable thing
+          to do! &mdash; it won&rsquo;t work as you would expect:
           <codeBlock>({
   m1: function() {
     <comment>// here, `this` is the receiver</comment>
@@ -459,13 +459,13 @@ Point.prototype.toString = function() {
             <li>The JavaScript interpreter creates an object that delegates to the function&rsquo;s
               <code>prototype</code> property, e.g., <code>Object.create(Point.prototype)</code>.
               Note that when you write a function, its <code>prototype</code> property automatically
-              gets initialized to a fresh
+              gets initialized to a <highlight>fresh
               <sideBar>
                 Didactic license strikes again! It&rsquo;s not really a fresh object, but rather a
                 new object with a single property, <code>constructor</code>, whose value is the
                 function itself.
               </sideBar>
-              object, i.e., the result of evaluating <code>new Object()</code>.</li>
+              object</highlight>, i.e., the result of evaluating <code>new Object()</code>.</li>
             <li>The interpreter then calls the function with <code>this</code> bound to the new
               object.</li>
             <li>
