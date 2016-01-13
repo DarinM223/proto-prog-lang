@@ -20,11 +20,12 @@ function checkArguments(op, v1, v2) {
   var op_rule = op_checks[op];
 
   if (typeof op_rule !== 'undefined' && op_rule !== null) {
-    var v1_expected = op_rule[0];
-    var v2_expected = op_rule[1];
+    var v1_expected = op_rule[0]
+      , v2_expected = op_rule[1];
 
     if (typeof v1 !== v1_expected || 
         typeof v2 !== v2_expected) {
+
       throw new TypeError('Operator check failed: Expected ' + v1_expected + 
                           ' and ' + v2_expected + ', instead found ' + (typeof v1) +
                           ' and ' + (typeof v2));
@@ -54,6 +55,7 @@ Val.prototype.eval = function(env) {
 
 Var.prototype.eval = function(env) {
   var value = env[this.x];
+
   if (typeof value === 'undefined' || value === null) {
     throw new EvalError('Variable \'' + this.x + '\' is not defined');
   }
@@ -71,6 +73,7 @@ If.prototype.eval = function(env) {
 
 Let.prototype.eval = function(env) {
   var clonedEnv = cloneEnvironment(env);
+
   clonedEnv[this.x] = this.e1.eval(env);
   return this.e2.eval(clonedEnv);
 };
@@ -121,27 +124,27 @@ BinOp.prototype.eval = function(env) {
 
   switch (this.op) {
     case '+':
-      return this.e1.eval(env) + this.e2.eval(env);
+      return v1 + v2;
     case '-':
-      return this.e1.eval(env) - this.e2.eval(env);
+      return v1 - v2;
     case '*':
-      return this.e1.eval(env) * this.e2.eval(env);
+      return v1 * v2;
     case '/':
-      return this.e1.eval(env) / this.e2.eval(env);
+      return v1 / v2;
     case '%':
-      return this.e1.eval(env) % this.e2.eval(env);
+      return v1 % v2;
     case '=':
-      return this.e1.eval(env) === this.e2.eval(env);
+      return v1 === v2;
     case '!=':
-      return this.e1.eval(env) !== this.e2.eval(env);
+      return v1 !== v2;
     case '<':
-      return this.e1.eval(env) < this.e2.eval(env);
+      return v1 < v2;
     case '>':
-      return this.e1.eval(env) > this.e2.eval(env);
+      return v1 > v2;
     case '&&':
-      return this.e1.eval(env) && this.e2.eval(env);
+      return v1 && v2;
     case '||':
-      return this.e1.eval(env) || this.e2.eval(env);
+      return v1 || v2;
     default:
       throw new EvalError('Operator not defined');
   }
