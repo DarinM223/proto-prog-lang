@@ -1,0 +1,503 @@
+<html>
+  <head>
+    <title>HW3: Pattern Matching Language</title>
+
+    <link rel="stylesheet" href="../lib/codemirror.css"></link>
+    <link rel="stylesheet" href="../common.css"></link>
+    <link rel="stylesheet" href="../tests.css"></link>
+    <link rel="stylesheet" href="../playground.css"></link>
+
+    <script src="../lib/helpers.js"></script>
+    <script src="../lib/lang.js"></script>
+    <script src="../lib/tests.js"></script>
+    <script src="../lib/playground.js"></script>
+
+    <script src="../lib/jquery-2.1.1.min.js"></script>
+    <script src="../lib/codemirror.js"></script>
+  </head>
+  <body>
+    <everything>
+      <header>
+        <part>Part II:</part>
+        <descr>Pattern Matching</descr>
+        <detail>(an internal DSL)</detail>
+      </header>
+      <abstract>
+        In Part II of this class, we will &ldquo;prototype&rdquo; an internal domain-specific
+        language for pattern matching in JavaScript.
+      </abstract>
+      <section>
+        <sectionHeader>
+          <span>Introduction</span>
+        </sectionHeader>
+        <p>
+          Object-oriented languages (including JavaScript) have primitive support for <em>dynamic
+          dispatch</em>, which automatically chooses the best method to invoke at run time, based on
+          the class of the receiver. You made use of this feature to good effect in
+          <a href="../func/index.html">Homeworks 1 and 2</a>. For example, the
+          <highlight><code>eval</code></highlight>
+          <sideBar>You may have used a different name, e.g., <code>interp</code>.</sideBar>
+          method of a <code>BinOp</code> AST node can simply invoke
+          <code>this.e1.eval(&hellip;)</code> to recursively evaluate its first operand, without
+          having to manually figure out the right <code>eval</code> method implementation for it;
+          rather, each kind of node just &ldquo;knows&rdquo; how to evaluate itself.
+        </p>
+        <p>
+          <sideBar>
+            Including the language you implemented in
+            <a href="../func/index.html#hw2">Homework 2</a>.
+          </sideBar>
+          However, dynamic dispatch has some important limitations when compared to a general
+          mechanism for <em>pattern matching</em>, as supported by many <highlight>functional
+          languages</highlight>:
+          <ul>
+            <li>
+              Dynamic dispatch can only be used at the &ldquo;top level&rdquo; of a method, to
+              determine which method implementation to invoke.  For example, suppose the code for
+              the method described above needs to behave differently based on the kind of value
+              <code>v</code> that is returned by the call <code>this.e1.eval(&hellip;)</code>. To use
+              dynamic dispatch, our only option is to create a new method <code>evalHelper</code>
+              with implementations for each kind of value, and invoke <code>v.evalHelper()</code>
+              inside <code>BinOp</code>&rsquo;s implementation of <code>eval</code>. This approach
+              is heavyweight and breaks up the logic of the original method in a potentially
+              unnatural way &mdash; so much so that it is common for programmers to instead resort
+              to manual dispatch through <code>instanceof</code> tests.
+            </li>
+            <li>
+              Dynamic dispatch does not support many useful features of pattern matching, such as
+              &ldquo;deep&rdquo; pattern matching on the structure of an object and tests on
+              primitive values (e.g., an integer that is equal to <code>5</code>).
+            </li>
+            <li>
+              In a language that supports <highlight><em>single dispatch</em></highlight>
+              <sideBar> &hellip; as opposed to <em>multiple-dispatch</em>.</sideBar> &mdash;
+              the majority of mainstream OO languages! &mdash; dynamic dispatch only gives
+              programmers a declarative way to implement different behaviors based on the class of
+              the receiver. There is no easy way to dispatch based on the classes of the arguments
+              of a method.
+            </li>
+          </ul>
+        </p>
+        <p>
+          Of course, one solution to this problem is to simply switch to a language that already
+          supports pattern matching, like the one you implemented in Homework 2. But changing
+          languages is not always an option:
+          <ul>
+            <li>
+              It may be that you&rsquo;re using several libraries that are only available in
+              JavaScript (or whatever language you are currently using), and it&rsquo;s too much
+              effort to reimplement all of that functionality in another language;
+            </li>
+            <li>
+  	      You may also be using several tools that are tightly coupled with JavaScript, such as
+              a special development environment, debugger, etc. There is a high cost to losing all
+              of these tools and having to find appropriate replacements.
+            </li>
+            <li>
+              <sideBar>
+                By &ldquo;obscure&rdquo; we mean anything that&rsquo;s not Java or C++&hellip;
+                <em>maybe</em> C#, too.
+              </sidebar>
+              Or maybe your boss isn&rsquo;t happy with the idea of an &ldquo;obscure&rdquo;
+              language creeping into the company&rsquo;s code base, because you&rsquo;ll eventually
+              move on and she will have to find someone else who can maintain the
+              code. This kind of thing is a real concern in industry.
+            </li>
+          </ul>
+        </p>
+        <p>
+          An increasingly popular solution to this problem is to provide the desired abstraction in
+          the form of an <em>internal domain-specific language (DSL)</em>. This name is important,
+          so let&rsquo;s break it down:
+          <ul>
+            <li>
+              <em>Internal</em> means that it lives inside a host language, as opposed to being a
+              language that you can use on its own.
+            </li>
+            <li>
+              <em>Domain-specific</em> means that it&rsquo;s focused on a particular problem, as
+              opposed to general-purpose.
+            </li>
+          </ul>
+          In other words, an internal DSL extends an existing language with new features that
+          provide increased expressiveness, security, performance, etc.
+        </p>
+        <p>
+          Internal DSLs (usually) don&rsquo;t have their own syntax; instead they have a
+          carefully-designed API in the host language that feels somewhat natural to write, and
+          makes for readable code. Designing such an API is not easy, and some host languages are
+          better than others. <a href="https://en.wikipedia.org/wiki/Smalltalk">Smalltalk</a>,
+          <a href="https://en.wikipedia.org/wiki/Ruby_(programming_language)">Ruby</a>,
+          <a href="https://en.wikipedia.org/wiki/Haskell_(programming_language)">Haskell</a>, and
+          <a href="https://en.wikipedia.org/wiki/Scala_(programming_language)">Scala</a> are all
+          reasonably good host languages. C not so much, though its macro system can be used to
+          implement some limited kinds of DSLs. Java is basically awful as a host language.
+        </p>
+        <p>
+          So what should you look for in a host language?
+          <ul>
+            <li>
+              It helps if the language is <b><a href="http://en.wikipedia.org/wiki/Expression-oriented_programming_language">expression-oriented</a></b>,
+              i.e., if nearly everything the programmer ever writes is an expression that yields a
+              value. The uniformity of this style of language makes it easier to extend, in contrast
+              to a language that has rigid distinctions among different syntactic categories (e.g.,
+              between expressions and statements).
+            </li>
+            <li>
+              <b>Support for first-class functions, especially if the syntax is lightweight.</b>
+              First-class functions are critical for implementing new control structures, new kinds
+              of modularity mechanisms, and more. See the original
+              <a href="http://library.readscheme.org/page1.html">Lambda the Ultimate&hellip;</a>
+              papers for good examples of this kind of thing.
+            </li>
+            <li>
+              <b>Operator overloading.</b> If you were using an internal DSL for matrix arithmetic,
+              would you rather have to write <code>aMatrix.times(anotherMatrix)</code> or
+              <code>aMatrix * anotherMatrix</code>?
+            </li>
+            <li>
+              <b>Garbage collection and finalizers</b> make it possible for the implementation of a
+              DSL to clean up after itself (deallocate data structures, close files, etc.) without
+              burdening the programmer.
+            </li>
+          </ul>
+        </p>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>HW 3: An Internal DSL for Pattern Matching</span>
+        </sectionHeader>
+        <due>
+          <span style="font-family: Komika Hand;">Due <b>Wednesday, February 4<sup>th</sup></b>,
+          at 11:30pm</span><br>
+          Turn in just your <tt>match.js</tt> through the course page on CCLE.
+        </due>
+        <p style="text-indent: 0;">
+          For homework 3, you&rsquo;ll implement an internal DSL for pattern matching in JavaScript.
+          Here&rsquo;s an example of how this DSL could be used to implement a <code>zip</code>
+          function, which turns two lists into a list of pairs, assuming we have declared
+          classes <code>Nil</code> and <code>Cons</code> to implement linked lists:
+	  <codeBlock>function zip(l1, l2) {
+  return match([l1, l2],
+    [instof(Nil), instof(Nil)], 
+      () => new Nil(),
+    [instof(Cons,_,_), instof(Cons,_,_)],
+      (x, xs, y, ys) => new Cons([x,y], zip(xs,ys)) 
+  );
+}</codeBlock>
+          Pattern matching with this DSL may not be as nice as doing it in a language that has
+          native support for pattern matching, but it sure beats deconstructing the objects
+          manually. The resulting code is both more readable (once you get used to the syntax) and
+          less error-prone.
+        </p>
+        <h2>Description of the DSL</h2>
+        <h3>The <code>match</code> function</h3>
+        <p>
+          Our DSL consists of a <code>match</code> function whose arguments are a value to be
+          matched, followed by zero or more (pattern, function) pairs:
+          <codeBlock>match(value, pat1, fun1, pat2, fun2, &hellip;)</codeBlock>
+          <code>match</code> will try to match the value with each of the patterns, in left-to-right
+          order. When it finds the first pattern that matches the value, <code>match</code> will
+          call that pattern&rsquo;s corresponding function and return the result of that call. If
+          none of the patterns match the value, <code>match</code> will throw an exception like
+          this: <codeBlock>throw new Error('match failed');</codeBlock>
+        </p>
+        <h3>Patterns</h3>
+        <p>
+          A pattern in our DSL serves two purposes:
+          <ul>
+            <li>It tells you whether it matches a value.</li>
+            <li>
+              <sidebar>
+                A function&rsquo;s <code>length</code> property tells you the number of arguments it
+                expects. E.g., <code>((x, y) => x + y).length</code> evaluates to <code>2</code>.
+              </sidebar>
+              On a successful match, it also breaks down the value into zero or more
+              <em>bindings</em> that will be passed as arguments to the pattern&rsquo;s
+              corresponding function. Note that the <highlight><em>arity</em></highlight>
+              (i.e., the number of arguments) of this function must be the same as the number of
+              bindings generated by the pattern. <b>Important:</b> your implementation should throw
+              an exception if this is not the case.
+            </li>
+          </ul>
+        </p>
+        <p>
+          Here is a list of the patterns that are supported in our DSL:
+          <ul>
+            <li>
+              The <b>wildcard pattern</b> <code>_</code> matches any value, and produces a single
+              binding that is equal to that value.
+            </li>
+            <li>
+              An array of patterns can also be used as a pattern. The <b>array pattern</b>
+              <code>[</code><i>p<sub>1</sub></i><code>,</code> <i>p<sub>2</sub></i><code>,</code>
+              &hellip;<code>,</code> <i>p<sub>n</sub></i><code>]</code> will match any array whose
+              contents are matched by <i>p<sub>1</sub></i>, <i>p<sub>2</sub></i>, &hellip;,
+              <i>p<sub>n</sub></i>, and if so, it will produce all of the bindings that were
+              produced by its sub-patterns, in order. For example:
+              <table>
+                <tr>
+                  <td>
+                    <codeBlock>match(['+', 5, 7],
+  ['+', _, _],
+    (x, y) => x + y
+)</codeBlock>
+                  </td>
+                  <td style="font-size: 14pt;"> 
+                    evaluates to <code>12</code>.
+                  </td> 
+                </tr> 
+                <tr>
+                  <td>
+                    <codeBlock>match(['+', 5],
+  ['+', _, _],
+    (x, y) => x + y
+)</codeBlock>
+                  </td>
+                  <td style="font-size: 14pt;"> 
+                    throws a <em>match failed</em> exception because there is no value to be matched
+                    by the second <code>_</code> pattern.
+                  </td>
+                </tr> 
+                <tr>
+                  <td>
+                    <codeBlock>match(['+', 5, 7],
+  ['+', _],
+    (x) => x
+)</codeBlock>
+                  </td>
+                  <td style="font-size: 14pt;"> 
+                    throws a <em>match failed</em> exception because there is no pattern to match
+                    the <code>7</code>.
+                  </td>
+                </tr> 
+              </table> 
+            </li>
+            <li>
+              The <b>predicate pattern</b>
+              <code>pred(</code><i style="margin: 3pt;">f</i><code>)</code>, where <i>f</i> is a
+              one-argument function, matches any value <i>v</i> for which
+              <i>f</i><code>(</code><i>v</i><code>)</code> is
+              <sideBar>
+                A value <code>v</code> is <em>truthy</em> if <code>v == true</code>.
+              </sideBar>
+              <highlight><em>truthy</em></highlight>. On a successful match, a predicate pattern
+              produces a single binding that is equal to the value that was matched. For example,
+              if <code>isNumber</code> is defined as follows,
+              <codeBlock>function isNumber(x) {
+  return typeof x === 'number';
+}</codeBlock>
+              then <codeBlock>match([1, 2],
+  [pred(isNumber), pred(isNumber)],
+    (x, y) => x + y
+);</codeBlock>
+              should evaluate to <code>3</code>.
+            </li>
+	    <li>
+              <p style="margin-bottom: 0;">
+                The <b>class pattern</b> <code>instof(</code><i>C</i><code>,</code>
+                <i>p<sub>1</sub></i><code>,</code> <i>p<sub>2</sub></i><code>,</code>
+                &hellip;<code>,</code> <i>p<sub>n</sub></i><code>)</code>, where
+                <highlight><i>C</i> is a class</highlight><sideBar>
+                   In other words, <i>C</i> is a constructor function that is declared either
+                   directly or via the <code>class</code> syntactic sugar.
+                </sideBar>, matches any value <i>v</i> for which both
+                <i>v</i> <code>instanceof</code> <i>C</i> is <code>true</code> and
+                <i>C</i><code>.prototype.deconstruct.call(v)</code> matches the pattern
+                <code>[</code><i>p<sub>1</sub></i><code>,</code> <i>p<sub>2</sub></i><code>,</code>
+                &hellip;<code>,</code> <i>p<sub>n</sub></i><code>]</code>.
+                On a successful match, a class pattern produces all of the bindings produced by
+                <i>p<sub>1</sub></i><code>,</code> <i>p<sub>2</sub></i><code>,</code>
+                &hellip;<code>, </code> <i>p<sub>n</sub></i>, in order.
+              </p>
+              <p style="margin-bottom: 0;">
+                Every class should have a <code>deconstruct</code> method that takes no arguments
+                and returns an array of values which constitute the &ldquo;public view&rdquo; of
+                an instance of the class. The default implementation of this method, in
+                &ldquo;class&rdquo; <code>Object</code>, should return the empty array &mdash;
+                <b>it is your responsibility to define this method</code></b>. Other classes may
+                override <code>deconstruct</code>. For instance, the <code>deconstruct</code>
+                method of <code>Cons</code> in our example is defined as follows:
+                <codeBlock>Cons.prototype.deconstruct = function() {
+  return [this.head, this.tail];
+};</codeBlock>
+                In other words, it returns an array containing the head and tail of the receiver.
+                This allows the <code>zip</code> method to recursively pattern match on the
+                structure of a list.
+              </p>
+              <note>
+                Internal DSLs often define special APIs as hooks into the host language. Here,
+                the <code>deconstruct</code> method gives the implementer of a class
+                control over how instances are exposed when they&rsquo;re used in pattern matching.
+                Note that this <em>view</em> of the object does not have to correspond to its
+                representation. For instance, the author of a <code>Point</code> class may choose to
+                represent points with <code>x</code> and <code>y</code> properties, but
+                <code>deconstruct</code> each point as a pair of (angle, radius) values.
+              </note>
+            </li>
+            <li>
+              A limitation of the array patterns described above is that the programmer has to
+              statically know the size of the array being matched. To make array patterns more
+              flexible, we introduce the <code>many(</code> <i>p</i> <code>)</code> pattern, which
+              can only appear directly nested inside an array pattern. This pattern matches zero or
+              more values that are matched by <i>p</i> and produces <i>k</i> bindings, where
+              <i>k</i> is the number of bindings produced by matching against <i>p</i>. The
+              <i>i</i><sup>th</sup> binding produced by <code>many(</code> <i>p</i> <code>)</code>
+              is an array of the <i>i</i><sup>th</sup> bindings produced from each of the matches
+              against <i>p</i>. For example:
+              <table>
+                <tr>
+                  <td>
+                    <codeBlock>match(['sum', 1, 2, 3, 4],
+  ['sum', many(pred(isNumber))],
+    nums => &hellip;
+)</codeBlock>
+                  </td>
+                  <td style="font-size: 14pt;"> 
+                    evaluates to <code>10</code>, assuming the body of the function to the left sums
+                    up the elements of the <code>nums</code> array.
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <codeBlock>match([[1, 2], [3, 4]],
+  [many([_,_])],
+    (xs, ys) => [xs, ys]
+)</codeBlock>
+                  </td>
+                  <td style="font-size: 14pt;"> 
+                    evaluates to <code>[[1, 3], [2, 4]]</code>.
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <codeBlock>match([1, 2, 3, 'and', 4],
+  [many(_), 'and', _],
+    (xs, x) => &hellip;
+)</codeBlock>
+                  </td>
+                  <td style="font-size: 14pt;"> 
+                    throws a <em>match failed</em> exception because the <code>many(_)</code> will
+                    consume all of the elements of the array, and there will be no value to be
+                    matched by the <code>'and'</code> pattern.
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <codeBlock>match([1, 2, 3, 'and', 4],
+  [many(pred(isNumber)), 'and', _],
+    (xs, x) => &hellip;
+)</codeBlock>
+                  </td>
+                  <td style="font-size: 14pt;"> 
+                    does match, with <code>xs</code> bound to <code>[1,2,3]</code> and
+                    <code>x</code> bound to <code>4</code>.
+                  </td>
+                </tr>
+              </table>
+              The somewhat unusual &ldquo;column-oriented&rdquo; array of bindings returned by a
+              <code>many</code> pattern ensures that the number of bindings produced can be
+              statically determined, independent of the number of values that end up matching the
+              pattern at run time. For example, the pattern <code>[many([_,_])]</code> always
+              generates two bindings.<sup style="color: #aaa;">*</sup>
+              <sidebar>
+                <sup style="color: #aaa;">*</sup> Note that this is true even when the
+                <code>many</code> pattern matches no values. Handling this case properly
+                may require some special support in your implementation.
+              </sidebar>
+            </li>
+            <li>
+              Any other value &mdash; e.g., <code>42</code>, <code>'foo'</code>, and
+              <code>undefined</code> &mdash; can be used as a <b>literal pattern</b>, i.e.,
+              a pattern that matches any value that is equal (<code>===</code>) to it. Literal
+              patterns don&rsquo;t produce any bindings.
+            </li>
+          </ul>
+        </p>
+        <p>
+          Keep in mind that <code>match</code> is just a regular JavaScript function, which means
+          that its arguments will be evaluated before any pattern matching actually happens. This
+          includes patterns like <code>many(pred(isNumber))</code>: they are plain old JavaScript
+          expressions that will be evaluated to values before entering the <code>match</code>
+          function.
+        </p>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Getting Started, Unit Tests, etc.</span>
+        </sectionHeader>
+        <p>
+          Please do your work in a file called <a href="match.js"><code>match.js</code></a>. Each
+          time you refresh this page, that file is loaded by our test harness to run the unit
+          tests below. As in the previous assignments, you can add your own test cases by editing
+          <a href="tests.js"><code>tests.js</code></a>.
+        </p>
+        <script src="match.js"></script>
+        <script src="tests.js"></script>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Playground</span>
+        </sectionHeader>
+        <script>
+
+insertPlayground(
+    JS,
+    'match(40,\n' +
+    '  [_],\n' +
+    '    x => x - 1,\n' +
+    '  _,\n' +
+    '    x => x + 2\n' +
+    ')'
+);
+
+        </script>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Extra Credit</span>
+        </sectionHeader>
+        <p>
+          <ul>
+            <li>
+              <sideBar>
+                Both of these extra credit assignmens are eligible for the CS237A extra project
+                requirement, <em>as long as your design and/or implementation is sufficiently
+                interesting</em>. Feel free to talk to the instructors in advance to verify that
+                this is the case.
+              </sideBar>
+              Extend our DSL with support for JSON / object patterns. This is as much of a design
+              exercise as it is an implementation exercise: you&rsquo;ll have to figure out a nice
+              way to expose this feature to the programmer (i.e., what should an object pattern
+              look like?) and implement it.
+            </li>
+            <li>
+              Design a better internal DSL for pattern matching in JavaScript. You don&rsquo;t
+              necessarily have to implement it, although doing so might get you some extra points.
+              Either way, you&rsquo;ll have to convince us that your design really is better!
+            </li>
+          </ul>
+        </p>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Recommended Reading</span>
+        </sectionHeader>
+        <p>
+          <ul>
+            <li>
+              Gilad Bracha&rsquo;s
+              <a href="http://gbracha.blogspot.com/2014/09/a-domain-of-shadows.html">blog
+              post on the advantages of internal DSLs over external DSLs</a>.
+            </li>
+            <li>
+              Martin Fowler&rsquo;s book, <a href="http://martinfowler.com/dsl.html">Domain-Specific
+              Languages</a>, has a chapter about internal DSLs.
+            </li>
+          </ul>
+        </p>
+      </section>
+    </everything>
+  </body>
+</html>
+
