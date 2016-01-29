@@ -57,6 +57,16 @@ tests(
           '  let inc = add 1 in\n' +
           '    inc 10',
     expected: 11
+  },
+  {
+    name: 'Lexical scope',
+    code: 'let addToFour = let y=4 in (fun x -> x + y) in let y = 5 in addToFour 34',
+    expected: 38
+  },
+  {
+    name: 'Nested functions must shadow variables in outer functions',
+    code: '((fun x -> fun x -> x + 2) 5) 3',
+    expected: 5
   }
 );
 
