@@ -11,7 +11,7 @@ tests(
     expected: true
   },
   {
-    name: 'arithmetic and relational operators should require args to be numbers',
+    name: 'arithmetic operators, greater-than, and less-than should require args to be numbers',
     code: '(fun x -> x) + 1',
     shouldThrow: true
   },
