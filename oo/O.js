@@ -30,7 +30,7 @@ var O = new Language(g, g.semantics().addOperation('toAST', {
   Stmt_methodDeclKeyword: function(_def, C, ms, _commas, xs, b) {
     return new MethodDecl(
         C.toAST(),
-        ms.toAST().reduce((m, part) => x + part.charAt(0).toUpperCase() + part.substr(1)),
+        ms.toAST().reduce((m, part) => m + part.charAt(0).toUpperCase() + part.substr(1)),
         xs.toAST(),
         b.toAST());
   },
@@ -74,13 +74,13 @@ var O = new Language(g, g.semantics().addOperation('toAST', {
   KWSendExp_send: function(e, ms, _colons, es) {
     return new Send(
         e.toAST(),
-        ms.toAST().reduce((m, part) => x + part.charAt(0).toUpperCase() + part.substr(1)),
+        ms.toAST().reduce((m, part) => m + part.charAt(0).toUpperCase() + part.substr(1)),
         es.toAST());
   },
 
   KWSendExp_super: function(_this, ms, _colons, es) {
     return new SuperSend(
-        ms.toAST().reduce((m, part) => x + part.charAt(0).toUpperCase() + part.substr(1)),
+        ms.toAST().reduce((m, part) => m + part.charAt(0).toUpperCase() + part.substr(1)),
         es.toAST());
   },
 
