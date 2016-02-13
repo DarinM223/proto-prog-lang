@@ -1,0 +1,15 @@
+.number {
+}
+
+.class, .def, .extends, .falseK, .new, .nullK, .return,
+.super, .this, .trueK, .var,  .with {
+  color: slateblue;
+}
+
+.ident {
+  color: maroon;
+}
+
+.comment {
+  color: green;
+}

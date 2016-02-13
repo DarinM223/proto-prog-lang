@@ -1,0 +1,856 @@
+<html>
+  <head>
+    <title>HW4 and HW5: Object-Oriented Language</title>
+
+    <link rel="stylesheet" href="../lib/codemirror.css"></link>
+    <link rel="stylesheet" href="../common.css"></link>
+    <link rel="stylesheet" href="../tests.css"></link>
+    <link rel="stylesheet" href="../playground.css"></link>
+    <link rel="stylesheet" href="syntax-highlighting.css"></link>
+
+    <script src="../lib/helpers.js"></script>
+    <script src="../lib/lang.js"></script>
+    <script src="../lib/tests.js"></script>
+    <script src="../lib/IndentingOutputStream.js"></script>
+    <script src="../lib/playground.js"></script>
+    <script src="../lib/beautify.js"></script>
+
+    <script src="../lib/jquery-2.1.1.min.js"></script>
+    <script src="../lib/codemirror.js"></script>
+
+    <script type="text/ohm-js">
+
+O {
+
+  Program
+    = Stmts
+
+  Stmts
+    = Stmt* Exp?
+
+  Stmt
+    = class ident (extends ident)? (with NonemptyListOf<ident, ",">)? ";"  -- classDecl
+    | def ident "." ident "(" ListOf<ident, ","> ")" MethodBody            -- methodDeclJava
+    | def ident (ident ":" ident)+ MethodBody                              -- methodDeclKeyword
+    | def ident binSelector ident MethodBody                               -- methodDeclBinary
+    | var ident "=" Exp ";"                                                -- varDecl
+    | ident "=" Exp ";"                                                    -- varAssign
+    | this "." ident "=" Exp ";"                                           -- instVarAssign
+    | return Exp ";"                                                       -- return
+    | Exp ";"                                                              -- exp
+
+  MethodBody
+    = "=" Exp ";"    -- exp
+    | "{" Stmts "}"  -- stmt
+
+  Exp
+    = KWSendExp
+
+  KWSendExp
+    = EqExp (ident ":" EqExp)+  -- send
+    | super (ident ":" EqExp)+  -- super
+    | EqExp
+
+  EqExp
+    = RelExp ("==" | "!=") RelExp  -- eq
+    | RelExp
+
+  RelExp
+    = AddExp ("<=" | "<" | ">=" | ">") AddExp  -- rel
+    | AddExp
+
+  AddExp
+    = AddExp ("+" | "-") MulExp  -- add
+    | MulExp
+
+  MulExp
+    = MulExp ("*" | "/" | "%") DotExp  -- mul
+    | DotExp
+
+  DotExp
+    = DotExp "." ident "(" Actuals ")"  -- send
+    | super "." ident "(" Actuals ")"   -- super
+    | this "." ident  ~"("              -- instVarAccess
+    | UnExp
+
+  UnExp
+    = "-" PriExp  -- neg
+    | PriExp
+
+  PriExp
+    = "(" Exp ")"                  -- paren
+    | "{" BlockArgNames Stmts "}"  -- block
+    | new ident "(" Actuals ")"    -- new
+    | string                       -- str
+    | ident                        -- ident
+    | number                       -- number
+    | this                         -- this
+    | trueK                        -- true
+    | falseK                       -- false
+    | nullK                        -- null
+
+  Actuals
+    = ListOf<Exp, ",">
+
+  BlockArgNames
+    = ListOf<ident, ","> "|"  -- some
+    |                         -- none
+
+  // Lexical rules
+
+  ident  (an identifier)
+    = ~keyword letter alnum*
+
+  string  (a string literal)
+    = "\"" (~"\"" ~"\n" any)* "\""
+
+  number  (a number literal)
+    = digit* "." digit+  -- fract
+    | digit+             -- whole
+
+  binSelector  (a binary selector)
+    = "===" | "==" | "!==" | "!=" | "<=" | "<" | ">=" | ">"
+    | "+"   | "-"  | "*"   | "/"  | "%"
+
+  class = "class" ~alnum
+  def = "def" ~alnum
+  else = "else" ~alnum
+  extends = "extends" ~alnum
+  falseK = "false" ~alnum
+  if = "if" ~alnum
+  new = "new" ~alnum
+  nullK = "null" ~alnum
+  return = "return" ~alnum
+  super = "super" ~alnum
+  then = "then" ~alnum
+  this = "this" ~alnum
+  trueK = "true" ~alnum
+  var = "var" ~alnum
+  with = "with" ~alnum
+
+  keyword
+    = class | def | else | extends | falseK | if | new | nullK | return | super
+    | then | this | trueK | var | with
+
+  space
+   += comment
+
+  comment
+    = "/*" (~"*/" any)* "*/"  -- multiLine
+    | "//" (~"\n" any)*       -- singleLine
+
+  tokens
+    = (keyword | ident | number | comment | any)*
+
+}
+
+    </script>
+    <script src="../lib/ohm.min.js"></script>
+    <script src="classes.js"></script>
+    <script src="O.js"></script>
+    <script src="prettyPrint.js"></script>
+  </head>
+  <body>
+    <everything>
+      <header>
+        <part>Part III:</part>
+        <descr>Object-Oriented Programming</descr>
+        <detail>(a source-to-source translator)</detail>
+      </header>
+      <abstract>
+        In Part III of this class, we will &ldquo;prototype&rdquo; an object-oriented programming
+        language using a technique known as <em>source-to-source translation</em>.
+      </abstract>
+      <section>
+        <sectionHeader>
+          <span>Introduction</span>
+        </sectionHeader>
+        <p>
+          So far we&rsquo;ve seen two common ways to prototype a programming language: as a
+          stand-alone interpreter, and as a library (or <i>embedded language</i>) in an existing
+          host language. In this part of the class, we&rsquo;ll see a third common implementation
+          style that involves translating a program that was written in the <em>source language</em>
+          &mdash; i.e., the language you are implementing &mdash; to a program in some
+          existing <em>target language</em> that has the desired behavior. This implementation
+          style, known as <em>source-to-source translation</em>, can be viewed as a lightweight form
+          of compilation: rather than translating all the way down to machine code, the language
+          implementer gets to leverage the features in a high-level target language, which
+          significantly simplifies the task.
+        </p>
+        <p>
+          This approach can be seen as a middle ground between the two other approaches we&rsquo;ve
+          seen in class. Like with an interpreter, the source language has its own syntax,
+          and requires a parser to convert this syntax into some form of abstract syntax trees.
+          Like with an embedded language, it&rsquo;s often possible to represent features in the
+          source language directly, using counterparts in the target language. For example, it
+          might be possible to translate a function in the source language to a function in the
+          target language that has the same behavior, which then allows function calls in the
+          source language to be implemented simply as function calls in the target language.
+        </p>
+        <p>
+          Of course, some language features in the source language will not map directly to a
+          semantically-equivalent construct in the target language. In that case, the translation
+          has to construct some code in the target language that will behave as desired. Depending
+          on the complexity of that code, it may be nicer to factor it out to a library so that
+          the target code is as simple and readable as possible. Such a library is similar in spirit
+          to the idea of an embedded language that we saw in the previous homework assignment,
+          except that this library is meant only for use by the source-to-source translator rather
+          than directly by the programmer.
+        </p>
+        <p>
+          In Part III of this class, you&rsquo;ll &ldquo;prototype&rdquo; an object-oriented
+          programming language by translating it to JavaScript. We&rsquo;ll start out with a
+          basic version of the language in Homework 4, and throw in some fancier features in
+          Homework 5.
+        </p>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Our OO Language</span>
+        </sectionHeader>
+        <p>
+          We&rsquo;ll start out with a &ldquo;vanilla&rdquo; object-oriented language with single
+          inheritance. Our language is dynamically-typed, and has Java-like syntax.
+        </p>
+        <h3>Declaring Classes</h3>
+        <p>
+          To declare a new class in our language, you use the <code>class</code> keyword:
+          <codeBlock>class C;</codeBlock>
+          Well, this class is not very interesting &mdash; it doesn&rsquo;t even have instance
+          variables! Here&rsquo;s how you would declare a <code>Point</code> class with two
+          instance variables, <code>x</code> and <code>y</code>:
+	  <codeBlock>class Point with x, y;</codeBlock>
+        </p>
+        <p>
+          By default, every new class that you declare is a direct subclass of <code>Obj</code>,
+          which is the root of the class hierarchy in our language. You can optionally specify a
+          superclass in a class declaration using the <code>extends</code> keyword, e.g.,
+          <codeBlock>class ThreeDeePoint extends Point with z;</codeBlock>
+        </p>
+        <h3>Declaring Methods</h3>
+        <p>
+          Our language supports <em>open classes</em>. This means that you can add new methods to a
+          class without editing its declaration. In fact, the syntax of our language does not even
+          allow programmers to write methods as part of a class declaration. Here&rsquo;s how you
+          add a method called <code>init</code> with arguments <code>x</code> and
+          <code>y</code> to our <code>Point</code> class:<codeBlock>def Point.init(x, y) {
+  this.x = x;
+  this.y = y;
+}</codeBlock>
+          And here&rsquo;s how you override <code>Point</code>&rsquo;s <code>init</code>
+          method shown above for instances of <code>ThreeDeePoint</code>:
+          <codeBlock>def ThreeDeePoint.init(x, y, z) {
+  super.init(x, y);
+  this.z = z;
+}
+</codeBlock>
+          Note that our language does not support static overloading. It doesn&rsquo;t matter that
+          <code>ThreeDeePoint</code>&rsquo;s version of <code>init</code> takes 3 arguments
+          whereas <code>Point</code>&rsquo;s <code>init</code> method only takes two arguments
+          &mdash; the former still overrides the latter.
+        </p>
+        <h3>Creating Objects</h3>
+        <p>
+          To create a new instance of a class, you use the <code>new</code> keyword just like in
+          JavaScript:
+          <codeBlock>var p = new Point(1, 2);</codeBlock>
+          As part of evaluating a <code>new</code> expression, our language invokes the
+          <code>init</code> method on the new instance with the arguments supplied.
+          Here&rsquo;s what happens when the expression
+          <nobr><code>new C(</code><em>e<sub>1</sub></em><code>,</code> &hellip;<code>,</code>
+          <em>e<sub>n</sub></em><code>)</code></nobr> is evaluated:
+          <ul>
+            <li>A new instance of <code>C</code> is created;</li>
+            <li>The new instance&rsquo;s <code>init</code> method is called with the
+              arguments provided, i.e.,
+              <code>newInstance.init(</code><em>e<sub>1</sub></em><code>,</code>
+              &hellip; <code>,</code><em>e<sub>n</sub></em><code>)</code>;</li>
+            <li>The new instance becomes the value of the entire <code>new</code> expression.</li>
+          </ul>
+        </p>
+        <h3>Statements and Expressions</h3>
+        <p>
+          Our language supports the kinds of statements and expressions that you&rsquo;ll find in a
+          typical OO language: the abilities to send a message to an object and access / update the
+          value of an instance variable, etc. The <code>init</code> methods above illustrate
+          assignment to instance variables, for example.
+        </p>
+        <p>
+          The next section includes a complete list of the statements and expressions in our
+          language. We&rsquo;ll describe the concrete and abstract syntax of each construct, as
+          well as its expected behavior.
+        </p>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Homework 4: The Base Language</span>
+        </sectionHeader>
+        <due>
+          <span style="font-family: Komika Hand;">Due <b>Monday, February 22<sup>nd</sup></b>,
+          at 11:30pm</span><br>
+          Turn in just your <tt>trans.js</tt> through the course page on CCLE.
+        </due>
+        <p>
+          You know the drill. Here&rsquo;s what the concrete syntax of the base language looks like,
+          and how we&rsquo;ll represent it as abstract syntax in JavaScript:
+        </p>
+        <p>
+          <table class="syntax" style="width: 815px;">
+            <tr>
+              <th></th>
+              <th>Concrete Syntax</th>
+              <th>JS AST</th>
+            </tr>
+            <tr>
+              <td>p ::=</td>
+              <td>s<sub>1</sub> &hellip; s<sub>n</sub></td>
+              <td>
+                <sidebar>
+                  Evaluates to the last statement, if it&rsquo;s an &ldquo;expression
+                  statement&rdquo; (see below), or <code>null</code> otherwise.
+                </sidebar>
+                <code>new <highlight>Program</highlight>([</code>s<sub>1</sub><code>,</code>
+                &hellip;<code>,</code> s<sub>n</sub><code>])</code>
+              </td>
+            </tr>
+            <tr>
+              <td>s ::=</td>
+              <td>
+                <multival>
+                  <div>
+                    <code>class</code> C <code>extends</code> S <code>with</code>
+                    x<sub>1</sub><code>,</code> &hellip;<code>,</code> x<sub>n</sub><code>;</code>
+                  </div>
+                  <div>
+                    <code>def</code> C<code>.</code>m<code>(</code>x<sub>1</sub><code>,</code>
+                    &hellip;<code>,</code> x<sub>n</sub><code>) {</code> s<sub>1</sub> &hellip;
+                    s<sub>m</sub> <code>}</code>
+                  </div>
+                  <div>
+                    <code>var</code> x <code>=</code> e<code>;</code>
+                  </div>
+                  <div>x<code> = </code>e<code>;</code></div>
+                  <div><code>this.</code>x<code> = </code>e<code>;</code></div>
+                  <div><code>return </code>e<code>;</code></div>
+                  <div>e<code>;</code></div>
+                </multival>
+              </td>
+              <td>
+                <div>
+                   <code>new ClassDecl(</code>C<code>,</code> S<code>,</code>
+                   <code>[</code>x<sub>1</sub><code>,</code> &hellip;<code>,</code>
+                   x<sub>n</sub><code>])</code>
+                </div>
+                <div>
+                  <code>new MethodDecl(</code> C<code>,</code> m<code>,</code>
+                    [</code>x<sub>1</sub><code>,</code> &hellip; x<sub>n</sub><code>],</code>
+                    [</code>s<sub>1</sub><code>,</code> &hellip; s<sub>m</sub><code>])</code>
+                </div>
+                <div><code>new VarDecl(</code>x<code>,</code> e<code>)</code></div>
+                <div><code>new VarAssign(</code>x<code>,</code> e<code>)</code></div>
+                <div><code>new InstVarAssign(</code>x<code>,</code> e<code>)</code></div>
+                <div><code>new Return(</code>e<code>)</code></div>
+                <div><code>new ExpStmt(</code>e<code>)</code></div>
+              </td>
+            </tr>
+            <tr>
+              <td>e ::=</td>
+              <td>
+                <multival>
+                  <div>primValue</div>
+                  <div>x</div>
+                  <div>e<sub>1</sub> <highlight>op</highlight> e<sub>2</sub></div>
+                  <div><code>this</code></div>
+                  <div><code>this.</code>x</div>
+                  <div><code>new </code>C<code>(</code>e<sub>1</sub><code>,</code> &hellip;<code>,</code> e<sub>n</sub><code>)</code></div>
+                  <div>e<sub>recv</sub><code>.</code>m<code>(</code>e<sub>1</sub><code>,</code> &hellip;<code>,</code> e<sub>n</sub><code>)</code></div>
+                  <div><code>super.</code>m<code>(</code>e<sub>1</sub><code>,</code> &hellip;<code>,</code> e<sub>n</sub><code>)</code></div>
+                </multival>
+              </td>
+              <td>
+                <div><code>new Lit(</code>primValue<code>)</code></div>
+                <div><code>new Var(</code>x<code>)</code></div>
+                <div>
+                  <sidebar>
+                    op &isin; <set>{<code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>,
+                    <code>%</code>, <code>&lt;</code>, <code>&gt;</code>}</set><br>
+                    These operators have the same semantics as they do in JavaScript.
+                  </sidebar>
+                  <code>new BinOp(</code>op<code>,</code> e<sub>1</sub><code>,</code> e<sub>2</sub><code>)</code>
+                </div>
+                <div><code>new This()</code></div>
+                <div><code>new InstVar(</code>x<code>)</code></div>
+                <div><code>new New(</code>C<code>,</code> <code>[</code>e<sub>1</sub><code>,</code> &hellip;<code>,</code>e<sub>n</sub><code>])</code></div>
+                <div><code>new Send(</code>e<sub>recv</sub><code>,</code> m<code>,</code> <code>[</code>e<sub>1</sub><code>,</code> &hellip;<code>,</code> e<sub>n</sub><code>])</code></div>
+                <div><code>new SuperSend(</code>m<code>,</code> <code>[</code>e<sub>1</sub><code>,</code> &hellip;<code>,</code> e<sub>n</sub><code>])</code></div>
+              </td>
+            </tr>
+            <tr>
+              <td>x, m, C, S ::=</td>
+              <td><ntext>an identifier, e.g., <code>sum</code></ntext></td>
+              <td><ntext>a string, e.g., <code>"sum"</code></ntext></td>
+            </tr>
+            <tr>
+              <td>primValue ::=</td>
+              <td colspan="2">
+                <ntext>
+                  a JavaScript number, boolean, or string literal, or <code>null</code>
+                </ntext>
+              </td>
+            </tr>
+          </table>
+        </p>
+        <note style="position: relative; width: 450px; float: right; margin-left: 10pt; margin-right: -200px;">
+          <img src="dude.png" width="250">
+          <div style="position: absolute; left: 210px; top: 10px; padding-right: 10pt;">
+            <div style="display: inline-block; width: 65px; height: 70px; float: left;"></div>
+            If you&rsquo;re not under the influence of a controlled substance (like these guys
+            on the left) chances are you noticed that our language doesn&rsquo;t have any
+            control structures like <code>if</code> statements and <code>while</code> loops. There
+            is a very good reason for this, and we&rsquo;ll tell you all about it in Homework 5.
+            Stay tuned!
+          </div>
+        </note>
+        <p>
+          Your job is to write a translator from our language to JavaScript. The translator will be
+          a function called <code>trans</code> that takes the AST of a program and returns a string
+          containing the JavaScript code generated from that AST:
+          <codeBlock style="text-indent: 0;">function trans(ast) {
+  <comment>// <text>do your thing!</text></comment>
+}</codeBlock>
+          Please do all your work in the file called <a href="trans.js">trans.js</a>.
+          <script src="trans.js"></script>
+          <script>
+
+O.transAST = trans;
+
+          </script>
+        </p>
+        <h3>Some Tips for Writing the Translator</h3>
+        <p>
+          It&rsquo;s up to you to design an appropriate translation strategy, i.e., a mapping from
+          our language to JavaScript that will give the translated programs the desired behavior.
+          Here are a few tips to help you get started.
+          <br><br>
+          <b>Re-read section about the &ldquo;class sugar&rdquo; in our JavaScript Primer.</b>
+          The desugaring of the class syntax in JavaScript, which we
+          <a href="../js/index.html#classes">explained in detail</a>, is almost exactly what
+          we&rsquo;re asking you to implement in this assignment. So take another look, see how
+          classes are represented, how super-sends work, etc. (You&rsquo;ll have to think a little
+          bit more about how to represent instance variables, which work differently in our
+          language.)
+          <br><br>
+          <b>Divide and conquer.</b>
+          Similar to the evaluators you wrote in the first two homeworks, it is natural for your
+          translation to be compositional. That is, the translation of an expression or statement
+          should be defined in terms of the translations of its subparts (other expressions and
+          statements). This leads to a nice recursive solution, and it also ensures that you allow
+          the subparts themselves to be arbitrarily complex. For example, the arguments to a message
+          sends can be arbitrary expressions, including other message sends.
+        </p>
+        <h3>Unit Tests</h3>
+        <p>
+          We have included some unit tests for your translator below. As in the previous
+          assignments, you can add your own test cases by editing
+          <a href="hw4-tests.js"><code>hw4-tests.js</code></a>.
+        </p>
+        <script src="hw4-tests.js"></script>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Homework 5</span>
+        </sectionHeader>
+        <p>
+          Coming soon!
+        </p>
+      </section>
+<!--
+      <section>
+        <h3>Part II: Look ma, no primitives!</h3>
+        <p>
+          In mainstream &ldquo;object-oriented&rdquo; languages like Java and C++, primitive values like <code>5</code> and
+          <code>true</code> are not real objects. This is unfortunate because (among other things) it often forces
+          programmers to write code in an unnatural way. Here are a couple of examples:
+          <ul>
+            <li>Isn't it annoying that you can write <code>getAge()</code> as a method of <code>Person</code>, but you
+              can't write <code>factorial</code> as a method of <code>int</code>?</li>
+            <li>Why is it that primitive types like <code>int</code> are not classes?!?! In Java,
+              this means that you can't use them as type parameters of a generic class / interface. For example, you
+              can't have a <code>Set&lt;int&gt;</code> &mdash; instead, you're stuck with
+              <code>Set&lt;Integer&gt;</code>, i.e., a set of <i>boxed</i> <code>int</code>s. Is this really something
+              the programmer should have to deal with?</li>
+          </ul>
+        </p>
+        <p>
+          As an aspiring language designer, we hope this lack of uniformity gives you the heebie-jeebies, and we know
+          you can do better! It shouldn't matter how an integer is represented at the language implementation level.
+          Our job is to help programmers, and we shouldn't expose them to implementation details that make programming
+          more complicated than it has to be.
+        </p>
+        <p>
+          In Homework 5, we will make our language into a &ldquo;pure&rdquo; object-oriented language, i.e., a language in which
+          <i>everything</i> is an object. As we'll see, this has some really nice benefits for the expressiveness of
+          the language. OK, you're clearly excited about this&hellip; Alright then, we won't make you wait until
+          Homework 5 to get a taste of the pure stuff :)
+        </p>
+        <p>
+          As a first step toward supporting pure OO programming, modify your implementation of the API described above
+          so that JavaScript's primitive numbers can be used as first-class objects in your language. For example,
+          <code>OO.send(6, '*', 7)</code> should evaluate to <code>42</code>. Here are the changes you'll have to make:
+          <ul>
+            <li>
+              <code>OO.initializeCT()</code> should declare the following classes and methods:
+              <ul>
+                <li>
+                  <code>Object</code>
+                  <ul>
+                    <li><code>initialize()</code>, <code>===</code>, and <code>!==</code> should work as described
+                      previously.</li>
+                    <li><code>isNumber()</code> returns <code>false</code></li>
+                  </ul>
+                </li>
+                <li>
+                  <code>Number</code> (a subclass of <code>Object</code>)
+                  <ul>
+                    <li><code>isNumber()</code> returns <code>true</code></li>
+                    <li><code>+ anotherNumber</code> returns the sum of the receiver and <code>anotherNumber</code>
+                    <li><code>- anotherNumber</code> &hellip;
+                    <li><code>* anotherNumber</code> &hellip;
+                    <li><code>/ anotherNumber</code> &hellip;
+                    <li><code>% anotherNumber</code> &hellip;
+                  </ul>
+                </li>
+              </ul>
+            </li>
+            <li>
+              When <code>typeof recv === 'number'</code>,<br>
+              <code>OO.send(recv, selector, arg<sub>1</sub>, arg<sub>2</sub>, &hellip;)</code> should look up the
+              method with the name <code>selector</code> in the <code>Number</code> class.
+            </li>
+          </ul>
+        </p>
+      </section>
+      <section>
+        <sectionHeader>
+          <span>Homework 5: Completing the Prototype</span>
+        </sectionHeader>
+        <p>
+          <due>
+            <b>Due at 11:30pm on Wednesday, March 4.</b>
+            Turn in just your <tt>trans.js</tt> file through the course page on CCLE.
+          </due>
+        </p>
+        <p>
+          In this homework, you will complete the prototype of our OO language. This will include doing a little more
+          work on the library that you implemented for Homework 4, and writing a translator from our OO language to
+          JavaScript.
+        </p>
+        <h3>Part I: Objectifying More Primitives</h3>
+        <p>
+          Modify <code>OO.initializeCT()</code> to:
+          <ul>
+            <li>Add <code>&lt;</code>, <code>&leq;</code>, <code>&geq;</code>, and <code>&gt;</code> methods to the
+              <code>Number</code> class. These methods should have the same semantics as their corresponding operators
+              in JavaScript.</li>
+            <li>
+              Declare the following classes:
+              <ul>
+                <li><code>Null</code> (a subclass of <code>Object</code>)</li>
+                <li><code>Boolean</code> (a subclass of <code>Object</code>)</li>
+                <li><code>True</code> (a subclass of <code>Boolean</code>)</li>
+                <li><code>False</code> (a subclass of <code>Boolean</code>)</li>
+              </ul>
+            </li>
+          </ul>
+        </p>
+        <p>
+          <b>Note:</b> The new classes listed above should not have any instance variables. They shouldn't have any
+          methods either, though by the time you're done with this assignment, you will be able to declare methods for
+          them using the source language, e.g., <codeBlock>def Boolean.isBoolean() { return true; }</codeBlock>
+        </p>
+        <p>
+          Now modify <code>OO.send()</code> so that:
+          <ul>
+            <li><code>OO.send(null,</code>
+              selector<code>, </code>e<sub>1</sub><code>, </code>e<sub>2</sub><code>, &hellip;)</code> looks up the
+              appropriate method in the <code>Null</code> class.</li>
+            <li>Similarly, when the receiver is <code>true</code> or <code>false</code>, method lookup should happen in
+              the <code>True</code> or <code>False</code> class, respectively.</li>
+          </ul>
+        </p>
+        <h4>Unit Tests for Part I</h4>
+        <script src="hw5-tests.js"></script>
+        <p>
+          You can add your own test cases by editing <a href="hw5-tests.js"><code>hw5-tests.js</code></a>.
+        </p>
+        <h3>Part II: The Translator</h3>
+        <p>
+          You will now write a translator from our OO language to JavaScript. Some of the features of our language
+          (e.g., class declarations) can be translated to a single method call that uses the OO library that you wrote
+          in Homework 4. Other features will have to be translated to JavaScript code that has the desired behavior
+          &mdash; it will be your job to design an appropriate translation strategy for these features.
+        </p>
+        <p>
+          Source programs will be provided as abstract syntax trees (ASTs) similar to the ones you saw in Homeworks 1
+          and 2. Your translator will take an AST as an argument, and return a string containing the JavaScript code
+          generated from that AST: <codeBlock>O.transAST = function(ast) {
+  // TODO: translate the AST to JavaScript
+};</codeBlock>
+        </p>
+        <p>
+          <b>Note:</b> It is important that you store your translation function in <code>O.transAST</code>. This will
+          hook it up to our test harness (which will also be used for grading!) and let you use the playground below
+          to experiment with your prototype.
+        </p>
+        <p>
+          Similar to the evaluators you wrote in the first two homeworks, it is natural for your translation to be
+          compositional. That is, the translation of an expression or statement should be defined in terms of the
+          translations of its subparts (other expressions and statements). This leads to a nice recursive solution,
+          and it also ensures that you allow the subparts to be themselves arbitrarily complex. For example, the
+          arguments to message sends can be arbitrary expressions, including other message sends. Also like those
+          earlier homeworks, your implementation will need to &ldquo;dispatch&rdquo; on the kind of AST node being considered.
+          <i>We strongly encourage you to use the pattern matching library that you wrote in Homework 3 for this
+          purpose.</i>
+        </p>
+        <p>
+          The rest of this section shows how the concrete syntax of each of the constructs in our language is
+          represented as an AST node. We also explain the semantics of some of the constructs.
+        </p>
+        <h4>Programs</h4>
+        <p>
+          The top-level AST node will always represent an entire program. A program in our OO language consists of zero
+          or more <i>source elements</i>, each of which may be a class declaration, a method declaration, or a
+          statement. The AST node for a program includes the tag <code>'program'</code> followed by the AST nodes for
+          the program's source elements: <codeBlock>new Program([<text>e<sub>1</sub></text>,<text> &hellip;</text>,<text>e<sub>2</sub></text>])</codeBlock>
+        </p>
+        <p>
+          <b>Hint:</b> The first thing you should generate from a program node is the following statement,
+          <codeBlock>OO.initializeCT();</codeBlock>
+          that way every time a program is evaluated, it starts with a clean slate.
+        </p>
+        <h4>Class Declarations</h4>
+        <p>
+          We represent class declarations, e.g.,
+          <codeBlock>class ThreeDeePoint extends Point with z;</codeBlock>
+          as <code>ClassDecl</code> nodes that include the name of the class that is being declared,
+          the name of its superclass, and a list of its instance variable names, e.g.,
+          <codeBlock>new ClassDecl('ThreeDeePoint', 'Point', ['z'])</codeBlock>
+          Note that the name of the superclass is included in the <code>ClassDecl</code> node even when it's not written explicitly
+          in the concrete syntax, e.g.,
+          <codeBlock>class Point with x, y;</codeBlock>
+          is represented as
+          <codeBlock>new ClassDecl('Point', 'Object', ['x', 'y'])</codeBlock>
+        </p>
+        <h4>Method Declarations</h4>
+        <p>
+          Method declarations, e.g.,
+          <codeBlock>def C.m(a, b, c) { &hellip; }</codeBlock>
+          are represented as <code>methodDecl</code> nodes that include the name of the class in which the method is
+          being declared, the name of the method, a list containing the names of its arguments, and a list containing
+          the ASTs of the statements in its body, e.g.,
+          <codeBlock>new MethodDecl('C', 'm', ['a', 'b', 'c'], [...])</codeBlock>
+        </p>
+        <p>
+          Note that the result of calling a method that doesn't return a value should be <code>null</code>. E.g., <codeBlock>def Object.m() { }
+new Object().m();  // should evaluate to null</codeBlock>
+        </p>
+        <h4>Statements and Expressions</h4>
+        <h4>Unit Tests for Part II</h4>
+        <script src="hw5-tests-part2.js"></script>
+        <p>
+          You can add your own test cases by editing <a href="hw5-tests-part2.js"><code>hw5-tests-part2.js</code></a>.
+        </p>
+        <h3>Part III: Blocks</h3>
+        <p>
+          Borrowing from <a href="http://en.wikipedia.org/wiki/Smalltalk">Smalltalk</a>, our language also includes <i>blocks</i>, which are essentially an object-oriented
+          version of <i>lambdas</i> (a.k.a. first-class functions). Here are some examples:
+          <ul>
+            <li>a block with no arguments: <code>{1 + 2}</code></li>
+            <li>a block with two arguments, <code>x</code> and <code>y</code>: <code>{ x, y | x + y }</code></li>
+            <li>a block with one argument whose body consists of multiple statements: <code>{ x | x.m(); x.n(); }</code></li>
+          </ul>
+        </p>
+        <p>
+          In general, a block can have any number of declared arguments and its body can consist of any number of
+          statements. When the last statement is an expression statement, the semicolon at the end is optional.
+        </p>
+        <p>
+          <table class="syntax">
+            <tr>
+              <th></th>
+              <th>Concrete Syntax</th>
+              <th>JS AST</th>
+            </tr>
+            <tr>
+              <td>e ::=</td>
+              <td>
+                <multival>
+                  <div>&hellip;</div>
+                  <div><code>{ </code>x<sub>1</sub><code>,</code> &hellip;<code>,</code> x<sub>n</sub> <code>|</code> s<sub>1</sub> &hellip; s<sub>m</sub> <code> }</code></div>
+                </multival>
+              </td>
+              <td>
+                <div>&hellip;</div>
+                <div><code>new Block([</code>x<sub>1</sub><code>,</code> &hellip;<code>,</code> x<sub>n</sub><code>], [</code>s<sub>1</sub><code>,</code> &hellip;<code>,</code> s<sub>m</sub><code>])</code></div>
+              </td>
+            </tr>
+          </table>
+        </p>
+        <p>
+          You evaluate a block by sending it a <code>call</code> message, to which you can pass the appropriate
+          arguments. Unlike in a method body, which requires an explicit <code>return</code> statement, a block
+          implicitly returns the value of its last statement, if it's an expression statement, or <code>null</code>
+          otherwise. Here are some examples:
+          <ul>
+            <li><code>{1 + 2}.call()</code> should evaluate to <code>3</code></li>
+            <li><code>{ x, y | x * y }.call(6, 7)</code> should evaluate to <code>42</code></li>
+            <li><code>{ x | x.m(); x.n(); }.call(someObj)</code> should result in calling <code>someObj</code>'s <code>m</code> method, then <code>someObj</code>'s
+              <code>n</code> method, and evaluate to the result of the latter</li>
+            <li><code>{ 1 + 2; var x = true; }.call()</code> should evaluate to <code>null</code></li>
+          </ul>
+        </p>
+        <p>
+          Just like lambdas, blocks can reference variables from their surrounding scope. A block also acts as kind of
+          lexical scope: any variable declarations that are made inside a block are not visible outside it.
+          Conveniently, JavaScript's functions have both of these properties&hellip;
+        </p>
+        <p>
+          So you can (and should!) avoid the need to implement the semantics of closures and lexical scopes from scratch
+          by translating blocks to plain old JavaScript functions. As with the treatment of numbers and booleans, you
+          will need to add a class for blocks (<code>Block</code>) that supports a <code>call</code> method.
+        </p>
+        <h4>Roll Your Own Control Structures</h4>
+        <p>
+          You've probably noticed that our language lacks control structures, e.g., it doesn't have <code>if</code> or
+          <code>while</code> statements. It turns out we don't need any built-in control structures because it's
+          straightforward for programmers to define their own, as ordinary methods. This power comes from a combination
+          of <i>purity</i> (the fact that everything in our language is an object) and support for <i>open classes</i>
+          (the fact that a programmer can add new methods to any class in the system).
+        </p>
+        <p>
+          For example, an if-then-else &ldquo;statement&rdquo; can be defined as a method <code>thenElse</code> on
+          <code>Boolean</code>s that takes two blocks as arguments, one for each branch of the conditional. With
+          appropriate implementations for the classes <code>True</code> and <code>False</code>, it is now possible to
+          write conditionals like the following:<codeBlock>(x >= 0).thenElse(
+  { x = 2*x },
+  { x = x * -1 })</codeBlock>
+          With the syntactic sugar that we saw in class you could write the following expression, which is equivalent
+          to the one shown above:<codeBlock>x >= 0 then {
+  x = 2*x
+} else {
+  x = x * -1
+}</codeBlock>
+        </p>
+        <h4>Semantics of <code>return</code> Inside a Block</h4>
+        <p>
+          As mentioned earlier, a block implicitly returns the value of its last expression statement. Sometimes it is
+          more natural for a block to directly return from its enclosing method &mdash; this is especially the case when
+          blocks are used to implement control structures. In our language, the <code>return</code> statement inside a
+          block acts as such a <i>non-local return</i>. For example, here is an implementation of the absolute value
+          method for <code>Number</code>s:<codeBlock>def Number.abs() {
+  (this >= 0).thenElse(
+    { return this; },
+    { return this * -1; })
+}</codeBlock>
+          When a <code>return</code> statement is executed in the above code, it returns the associated value from the
+          <code>abs</code> method itself, and returns control to the caller of <code>abs</code>, rather than just
+          returning from the block. While it may seem like there are two different kinds of <code>return</code>
+          in our language, this isn't really the case. A <code>return</code> inside a block means exactly the same thing
+          as a <code>return</code> inside a method: return this value <i>from (this particular activation of) the
+          enclosing method</i>.
+        </p>
+        <p>
+          One interesting issue is how to treat non-local <code>return</code>s in cases where the block is passed around
+          before it is called. In our language, it's a run-time error to try to execute a <code>return</code> from a
+          block whose enclosing method has already returned. Otherwise, it is OK for a block to execute a
+          <code>return</code>, regardless of where on the call stack the enclosing method's activation record is. For
+          instance, in the absolute value example above, a <code>return</code> causes the activation records for
+          <code>Block</code>'s <code>call</code> method and <code>Boolean</code>'s <code>thenElse</code> method to
+          be popped off the stack, and the return value is then associated with the original call to
+          <code>Number</code>'s <code>abs</code> method. Here's another example:<codeBlock>def Object.m() {
+  var b = { return 5; };
+  return this.n(b) * 2;
+}
+
+def Object.n(aBlock) {
+  aBlock.call();
+  return 42;
+}
+
+new Object().m();  // evaluates to 5</codeBlock>
+        </p>
+        <p>
+          To implement non-local <code>return</code> properly, the stack must be &ldquo;walked,&rdquo; popping off stack frames
+          until the right activation record is found.  <b>Hint:</b> <i>Exceptions</i> already walk the stack, so it is
+          natural to use them to implement non-local returns. The main difficulty is to ensure that a
+          <code>return</code> is always associated with the correct method invocation.
+        </p>
+        <h4>Unit Tests for Part III</h4>
+        <script src="hw5-tests-part3.js"></script>
+        <p>
+          You can add your own test cases by editing <a href="hw5-tests-part3.js"><code>hw5-tests-part3.js</code></a>.
+        </p>
+      </section>
+-->
+      <section>
+        <sectionHeader>
+          <span>Playground</span>
+        </sectionHeader>
+        <script>
+
+insertPlayground(
+    O,
+    '6 * 7'
+);
+
+        </script>
+      </section>
+<!--
+      <section>
+        <sectionHeader>
+          <span>Extra Credit</span>
+        </sectionHeader>
+        <p>
+          <ul>
+            <li>Re-implement this language as an interpreter similar to the one that you wrote for the functional
+              language in Homeworks 1 and 2, and write a brief (1-2 page) report comparing the two prototyping styles.
+              (It's OK to use your <code>OO</code> library in your interpreter.)</li>
+            <li>Modify your implementation so that classes are first-class objects. After this change, a programmer
+              should be able to declare new classes and methods dynamically by calling methods on <code>Class</code>
+              objects. (Food for thought: what is the superclass of <code>Class</code>?)</li>
+            <li>Are there other aspects of this language that could be made into objects? Consider variables, for
+              example. If variables were objects, it would make sense for assignment to be a method (even though it
+              may not look that way in the syntax). What kinds of interesting things might programmers be able to do
+              if they were able to override the assignment operator? Another example is activation records: if they
+              were objects, what would it mean to look up the value of a local variable? Lots of opportunities for
+              extra-credit projects here!</li>
+          </ul>
+        </p>
+      </section>
+-->
+      <section>
+        <sectionHeader>
+          <span>Recommended Reading</span>
+        </sectionHeader>
+        <p>
+          <ul>
+            <li>Alan Kay&rsquo;s
+              <a href="http://www.smalltalk.org/downloads/papers/SmalltalkHistoryHOPL.pdf">The Early
+              History of Smalltalk</a></li>
+            <li>Dan Ingalls&rsquo;
+              <a href="https://ia601608.us.archive.org/21/items/bitsavers_xeroxparctalk76ProgrammingSystemDesignandImplement_1637358/The_Smalltalk-76_Programming_System_Design_and_Implementation.pdf">The Smalltalk-76 Programming System Design and Implementation</a></li>
+            <li>The first 100 pages or so of Gregor Kiczales et al.&rsquo;s
+              <a href="http://www.amazon.com/The-Metaobject-Protocol-Gregor-Kiczales/dp/0262610744#">The Art of the Meta-Object Protocol</a></li>
+            <li>OOP doesn&rsquo;t necessarily mean &ldquo;programming with classes&rdquo;. Here
+              are a couple of interesting papers on <i>prototype-based</i> OO languages:
+              <ul>
+                <li>Henry Lieberman&rsquo;s <a href="http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=08215CC8C328830681F432DC19CC3F0C?doi=10.1.1.48.69&rep=rep1&type=pdf">Using Prototypical Objects to Implement Shared Behavior in Object Oriented Systems</a></li>
+                <li>David Ungar and Randy B. Smith&rsquo;s <a href="http://www.selflanguage.org/_static/published/self-power.pdf">SELF: The Power of Simplicity</a></li>
+              </ul></li>
+          </ul>
+        </p>
+      </section>
+    </everything>
+  </body>
+</html>
+
