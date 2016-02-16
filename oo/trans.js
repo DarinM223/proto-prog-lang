@@ -1,7 +1,5 @@
 'use strict'
 
-/* global TODO */
-
 /*
  * Expression translating
  */
@@ -9,7 +7,11 @@
 /* global Lit, Var, BinOp, This, InstVar, New, Send, SuperSend */
 
 Lit.prototype.trans = function () {
-  return this.primValue + ''
+  if (typeof this.primValue === 'string') {
+    return '"' + this.primValue + '"'
+  }
+
+  return this.primValue
 }
 
 Var.prototype.trans = function () {
@@ -30,6 +32,7 @@ This.prototype.trans = function () {
 }
 
 InstVar.prototype.trans = function () {
+  // return 'this.' + this.x
   var str = '(function (x) {'
   str += 'if (typeof x !== "undefined") {'
   str += 'return x;'
@@ -37,7 +40,7 @@ InstVar.prototype.trans = function () {
   str += 'throw new EvalError("this.' + this.x + ' is not defined!");'
   str += '}'
   str += '})('
-  str += 'this.' + this.x
+  str += 'this._' + this.x
   str += ')'
   return str
 }
@@ -70,7 +73,16 @@ Send.prototype.trans = function () {
 }
 
 SuperSend.prototype.trans = function () {
-  throw new TODO('Not implemented yet!')
+  var str = ''
+
+  var inputExpressions = this.es.map(function (exp) {
+    return exp.trans()
+  }).join(',')
+
+  var comma = (inputExpressions.length <= 0 ? '' : ',')
+
+  str += '_thisClass.prototype.derived.prototype.' + this.m + '.call(this ' + comma + inputExpressions + ')'
+  return str
 }
 
 /*
@@ -81,14 +93,16 @@ SuperSend.prototype.trans = function () {
 
 ClassDecl.prototype.trans = function () {
   var str = ''
-  str += 'function '
-  str += this.C
-  // TODO(DarinM223): account for inheritance
-  str += ' () {'
+  str += this.C + '.prototype = Object.create(' + this.S + '.prototype);'
+  str += this.C + '.prototype.derived = ' + this.S + ';'
+  str += this.C + '.constructor = ' + this.C + ';'
+  str += 'function ' + this.C + ' () {'
 
   for (var i = 0; i < this.xs.length; i++) {
-    str += 'this.' + this.xs[i] + ' = null;'
+    str += 'this._' + this.xs[i] + ' = null;'
   }
+
+  str += 'this._rootClass = ' + this.C + ';'
   str += 'if (typeof this.init !== "undefined" && this.init !== null) {'
   str += 'this.init.apply(this, arguments);'
   str += '}'
@@ -103,6 +117,7 @@ MethodDecl.prototype.trans = function () {
   str += this.m
   str += ' = function '
   str += '(' + this.xs.join(',') + ') {'
+  str += 'var _thisClass = ' + this.C + ';'
 
   var hasReturn = false
 
@@ -138,7 +153,7 @@ VarAssign.prototype.trans = function () {
 }
 
 InstVarAssign.prototype.trans = function () {
-  return 'this.' + this.x + ' = ' + this.e.trans() + ';'
+  return 'this._' + this.x + ' = ' + this.e.trans() + ';'
 }
 
 Return.prototype.trans = function () {
