@@ -43,6 +43,14 @@ var O = new Language(g, g.semantics().addOperation('toAST', {
         b.toAST());
   },
 
+  Stmt_methodDeclCall: function(_def, C, _op, xs, _cp, b) {
+    return new MethodDecl(
+        C.toAST(),
+        'call',
+        xs.toAST(),
+        b.toAST());
+  },
+
   Stmt_varDecl: function(_var, x, _eq, e, _sc) {
     return new VarDecl(x.toAST(), e.toAST());
   },
@@ -116,16 +124,20 @@ var O = new Language(g, g.semantics().addOperation('toAST', {
     return new BinOp('-', new Lit(0), x.toAST());
   },
 
+  CallExp_call: function(b, _op, es, _cp) {
+    return new Send(b.toAST(), 'call', es.toAST());
+  },
+
   PriExp_paren: function(_op, e, _cp) {
     return e.toAST();
   },
 
   PriExp_block: function(_oc, xs, ss, _cc) {
-    return new Block(xs.toAST(), ss.toAST());
+    return new BlockLit(xs.toAST(), ss.toAST());
   },
 
-  PriExp_new: function(_new, C, _op, xs, _cp) {
-    return new New(C.toAST(), xs.toAST());
+  PriExp_new: function(_new, C, _op, es, _cp) {
+    return new New(C.toAST(), es.toAST());
   },
 
   PriExp_str: function(s) {
