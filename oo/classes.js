@@ -145,7 +145,7 @@ class SuperSend extends Exp {
   }
 }
 
-class Block extends AST {
+class BlockLit extends AST {
   constructor(xs, ss) {
     super();
     this.xs = xs;
