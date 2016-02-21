@@ -520,10 +520,11 @@ O.transAST = trans;
               because none of our classes understand messages like <code>+</code> and
               <code>-</code> yet. Fix this by adding methods to <code>Obj</code> that correspond to
               each of the following operators: <code>+</code>, <code>-</code>, <code>*</code>,
-              <code>/</code>,  <code>%</code>, <code>&lt;</code>, and <code>&gt;</code>. These
-              methods should behave just like their corresponding JavaScript operators. After this,
-              you will have restored the original semantics of our language, but now you&rsquo;ll
-              be able to override operators, e.g.:<codeBlock>def Point + that {
+              <code>/</code>,  <code>%</code>, <code>&lt;</code>, <code>&gt;</code>,
+              <code>==</code>, and <code>!=</code>. These methods should behave just like their
+              corresponding JavaScript operators. After this, you will have restored the original
+              semantics of our language, but now you&rsquo;ll be able to override operators, e.g.:
+              <codeBlock>def Point + that {
   return new Point(this.x() + that.x(), this.y() + that.y());
 }</codeBlock>
             </li>
