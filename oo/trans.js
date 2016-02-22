@@ -1,6 +1,80 @@
 'use strict'
 
 /*
+ * Predefined classes
+ */
+
+class Obj {
+  constructor (val) {
+    this.val = val
+  }
+}
+
+Obj.prototype['=='] = function (obj) {
+  if (this.val === obj.val) {
+    return new True(true)
+  }
+  return new False(false)
+}
+
+Obj.prototype['>'] = function (obj) {
+  if (this.val > obj.val) {
+    return new True(true)
+  }
+  return new False(false)
+}
+
+Obj.prototype['>='] = function (obj) {
+  if (this.val >= obj.val) {
+    return new True(true)
+  }
+  return new False(false)
+}
+
+Obj.prototype['<'] = function (obj) {
+  if (this.val < obj.val) {
+    return new True(true)
+  }
+  return new False(false)
+}
+
+Obj.prototype['<='] = function (obj) {
+  if (this.val <= obj.val) {
+    return new True(true)
+  }
+  return new False(false)
+}
+
+class Num extends Obj {}
+
+Num.prototype['+'] = function (obj) {
+  return new Num(this.val + obj.val)
+}
+
+Num.prototype['-'] = function (obj) {
+  return new Num(this.val - obj.val)
+}
+
+Num.prototype['*'] = function (obj) {
+  return new Num(this.val * obj.val)
+}
+
+Num.prototype['/'] = function (obj) {
+  return new Num(this.val / obj.val)
+}
+
+class Str extends Obj {}
+
+Str.prototype['+'] = function (obj) {
+  return new Str(this.val + obj.val)
+}
+
+class Null extends Obj {}
+class Bool extends Obj {}
+class True extends Bool {}
+class False extends Bool {}
+
+/*
  * Expression translating
  */
 
@@ -8,7 +82,17 @@
 
 Lit.prototype.trans = function () {
   if (typeof this.primValue === 'string') {
-    return '"' + this.primValue + '"'
+    return '(new Str("' + this.primValue + '"))'
+  } else if (typeof this.primValue === 'number') {
+    return '(new Num(' + this.primValue + '))'
+  } else if (typeof this.primValue === 'boolean') {
+    if (this.primValue === true) {
+      return '(new True(' + this.primValue + '))'
+    } else {
+      return '(new False(' + this.primValue + '))'
+    }
+  } else if (this.primValue === null) {
+    return '(new Null(' + this.primValue + '))'
   }
 
   return this.primValue
@@ -19,12 +103,8 @@ Var.prototype.trans = function () {
 }
 
 BinOp.prototype.trans = function () {
-  var str = '('
-  str += this.e1.trans()
-  str += this.op
-  str += this.e2.trans()
-  str += ')'
-  return str
+  var send = new Send(this.e1, this.op.trim(), [this.e2])
+  return send.trans()
 }
 
 This.prototype.trans = function () {
@@ -32,7 +112,6 @@ This.prototype.trans = function () {
 }
 
 InstVar.prototype.trans = function () {
-  // return 'this.' + this.x
   var str = '(function (x) {'
   str += 'if (typeof x !== "undefined") {'
   str += 'return x;'
@@ -61,8 +140,9 @@ New.prototype.trans = function () {
 Send.prototype.trans = function () {
   var str = ''
   str += this.erecv.trans()
-  str += '.'
+  str += '["'
   str += this.m
+  str += '"]'
 
   var inputExpressions = this.es.map(function (exp) {
     return exp.trans()
@@ -113,8 +193,9 @@ ClassDecl.prototype.trans = function () {
 MethodDecl.prototype.trans = function () {
   var str = ''
   str += this.C
-  str += '.prototype.'
+  str += '.prototype["'
   str += this.m
+  str += '"]'
   str += ' = function '
   str += '(' + this.xs.join(',') + ') {'
   str += 'var _thisClass = ' + this.C + ';'
@@ -161,7 +242,7 @@ Return.prototype.trans = function () {
 }
 
 ExpStmt.prototype.trans = function () {
-  return this.e.trans() + ';'
+  return this.e.trans() + '.val;'
 }
 
 /*
@@ -178,8 +259,6 @@ Program.prototype.trans = function () {
   }
   return str
 }
-
-class Obj {}
 
 function trans (ast) {
   return ast.trans()
