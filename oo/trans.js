@@ -73,12 +73,27 @@ class Null extends Obj {}
 class Bool extends Obj {}
 class True extends Bool {}
 class False extends Bool {}
+class Block extends Obj {
+  constructor (obj, fn) {
+    super()
+    this.obj = obj
+    this.fn = fn
+  }
+}
+
+Block.prototype.call = function () {
+  return this.fn.apply(this.obj, arguments)
+}
+
+function BlockException (val) {
+  this.val = val
+}
 
 /*
  * Expression translating
  */
 
-/* global Lit, Var, BinOp, This, InstVar, New, Send, SuperSend */
+/* global Lit, Var, BinOp, This, InstVar, New, Send, SuperSend, BlockLit */
 
 Lit.prototype.trans = function () {
   if (typeof this.primValue === 'string') {
@@ -165,6 +180,32 @@ SuperSend.prototype.trans = function () {
   return str
 }
 
+BlockLit.prototype.trans = function () {
+  var str = ''
+  str += '(new Block(this, ('
+  str += this.xs.join(',')
+  str += ') => {'
+
+  for (var i = 0; i < this.ss.length - 1; i++) {
+    var statement = this.ss[i]
+    if (statement instanceof Return) {
+      str += 'throw new BlockException(' + statement.e.trans() + ');'
+    } else {
+      str += statement.trans()
+    }
+  }
+
+  var lastStatement = this.ss[i]
+  if (lastStatement instanceof Return) {
+    str += 'throw new BlockException(' + lastStatement.e.trans() + ');'
+  } else {
+    str += 'return ' + lastStatement.e.trans() + ';'
+  }
+
+  str += '}))'
+  return str
+}
+
 /*
  * Statement translating
  */
@@ -238,7 +279,17 @@ InstVarAssign.prototype.trans = function () {
 }
 
 Return.prototype.trans = function () {
-  return 'return ' + this.e.trans() + ';'
+  var str = ''
+  str += 'try {'
+  str += 'return ' + this.e.trans() + ';'
+  str += '} catch (e) {'
+  str += 'if (e instanceof BlockException) {'
+  str += 'return e.val;'
+  str += '} else {'
+  str += 'throw e;'
+  str += '}'
+  str += '}'
+  return str
 }
 
 ExpStmt.prototype.trans = function () {
