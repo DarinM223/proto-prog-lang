@@ -214,6 +214,8 @@ BlockLit.prototype.trans = function () {
     str += 'throw new BlockException(_fnCounter, ' + lastStatement.e.trans() + ');'
   } else if (lastStatement instanceof ExpStmt) {
     str += 'return ' + lastStatement.e.trans() + ';'
+  } else if (typeof lastStatement === 'undefined') {
+    str += 'return new Null(null);'
   } else {
     str += lastStatement.trans()
     str += 'return new Null(null);'
