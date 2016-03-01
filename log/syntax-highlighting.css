@@ -1,0 +1,11 @@
+.symbol {
+  color: slateblue;
+}
+
+.variable {
+  color: maroon;
+}
+
+.comment {
+  color: green;
+}
