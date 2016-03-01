@@ -10,35 +10,35 @@ class Obj {
   }
 }
 
-Obj.prototype['=='] = function (obj) {
+Obj.prototype['=='] = function (_, obj) {
   if (this.val === obj.val) {
     return new True(true)
   }
   return new False(false)
 }
 
-Obj.prototype['>'] = function (obj) {
+Obj.prototype['>'] = function (_, obj) {
   if (this.val > obj.val) {
     return new True(true)
   }
   return new False(false)
 }
 
-Obj.prototype['>='] = function (obj) {
+Obj.prototype['>='] = function (_, obj) {
   if (this.val >= obj.val) {
     return new True(true)
   }
   return new False(false)
 }
 
-Obj.prototype['<'] = function (obj) {
+Obj.prototype['<'] = function (_, obj) {
   if (this.val < obj.val) {
     return new True(true)
   }
   return new False(false)
 }
 
-Obj.prototype['<='] = function (obj) {
+Obj.prototype['<='] = function (_, obj) {
   if (this.val <= obj.val) {
     return new True(true)
   }
@@ -47,25 +47,25 @@ Obj.prototype['<='] = function (obj) {
 
 class Num extends Obj {}
 
-Num.prototype['+'] = function (obj) {
+Num.prototype['+'] = function (_, obj) {
   return new Num(this.val + obj.val)
 }
 
-Num.prototype['-'] = function (obj) {
+Num.prototype['-'] = function (_, obj) {
   return new Num(this.val - obj.val)
 }
 
-Num.prototype['*'] = function (obj) {
+Num.prototype['*'] = function (_, obj) {
   return new Num(this.val * obj.val)
 }
 
-Num.prototype['/'] = function (obj) {
+Num.prototype['/'] = function (_, obj) {
   return new Num(this.val / obj.val)
 }
 
 class Str extends Obj {}
 
-Str.prototype['+'] = function (obj) {
+Str.prototype['+'] = function (_, obj) {
   return new Str(this.val + obj.val)
 }
 
@@ -81,13 +81,20 @@ class Block extends Obj {
   }
 }
 
-Block.prototype.call = function () {
+Block.prototype.call = function (_) {
+  console.log("Arguments: ", arguments)
   return this.fn.apply(this.obj, arguments)
 }
 
-function BlockException (val) {
+function BlockException (id, val) {
+  this.id = id
   this.val = val
 }
+
+/**
+ * A global counter for generating unique ids for methods
+ */
+var _globalCounter = 0;
 
 /*
  * Expression translating
@@ -140,8 +147,7 @@ InstVar.prototype.trans = function () {
 }
 
 New.prototype.trans = function () {
-  var str = ''
-  str += 'new '
+  var str = 'new '
   str += this.C
 
   var inputExpressions = this.es.map(function (exp) {
@@ -153,43 +159,54 @@ New.prototype.trans = function () {
 }
 
 Send.prototype.trans = function () {
-  var str = ''
-  str += this.erecv.trans()
+  var str = '(() => {'
+  str += 'var _counter = _globalCounter;'
+  str += '_globalCounter += 1;'
+  str += 'var result = ' + this.erecv.trans()
   str += '["'
   str += this.m
   str += '"]'
 
-  var inputExpressions = this.es.map(function (exp) {
+  var inputExpressions = ['_counter'].concat(this.es.map(function (exp) {
     return exp.trans()
-  }).join(',')
+  })).join(',')
 
-  str += '(' + inputExpressions + ')'
+  str += '(' + inputExpressions + ');'
+  str += 'return result;'
+  str += '})()'
   return str
 }
 
 SuperSend.prototype.trans = function () {
-  var str = ''
+  var str = '(() => {'
+  str += 'var _counter = _globalCounter;'
+  str += '_globalCounter += 1;'
 
-  var inputExpressions = this.es.map(function (exp) {
+  var inputExpressions = ['_counter'].concat(this.es.map(function (exp) {
     return exp.trans()
-  }).join(',')
+  })).join(',')
 
   var comma = (inputExpressions.length <= 0 ? '' : ',')
 
-  str += '_thisClass.prototype.derived.prototype.' + this.m + '.call(this ' + comma + inputExpressions + ')'
+  str += 'var result = _thisClass.prototype.derived.prototype.' + this.m + '.call(this ' + comma + inputExpressions + ');'
+  str += 'return result;'
+  str += '})()'
   return str
 }
 
 BlockLit.prototype.trans = function () {
   var str = ''
-  str += '(new Block(this, ('
-  str += this.xs.join(',')
+  str += '((_fnCounter) => {'
+  str += 'console.log("FN Counter start: ", _fnCounter);'
+  str += 'return (new Block(this, ('
+  str += ['_'].concat(this.xs).join(',')
   str += ') => {'
 
   for (var i = 0; i < this.ss.length - 1; i++) {
     var statement = this.ss[i]
     if (statement instanceof Return) {
-      str += 'throw new BlockException(' + statement.e.trans() + ');'
+      str += 'console.log("FN Counter call: ", _fnCounter);'
+      str += 'throw new BlockException(_fnCounter, ' + statement.e.trans() + ');'
     } else {
       str += statement.trans()
     }
@@ -197,12 +214,17 @@ BlockLit.prototype.trans = function () {
 
   var lastStatement = this.ss[i]
   if (lastStatement instanceof Return) {
-    str += 'throw new BlockException(' + lastStatement.e.trans() + ');'
-  } else {
+    str += 'console.log("FN Counter call: ", _fnCounter);'
+    str += 'throw new BlockException(_fnCounter, ' + lastStatement.e.trans() + ');'
+  } else if (lastStatement instanceof ExpStmt) {
     str += 'return ' + lastStatement.e.trans() + ';'
+  } else {
+    str += lastStatement.trans()
+    str += 'return new Null(null);'
   }
 
   str += '}))'
+  str += '})(typeof _fnCounter !== "undefined" ? _fnCounter : null)'
   return str
 }
 
@@ -225,7 +247,10 @@ ClassDecl.prototype.trans = function () {
 
   str += 'this._rootClass = ' + this.C + ';'
   str += 'if (typeof this.init !== "undefined" && this.init !== null) {'
-  str += 'this.init.apply(this, arguments);'
+  str += 'var _counter = _globalCounter;'
+  str += '_globalCounter += 1;'
+  str += 'var args = [_counter].concat(Array.prototype.slice.call(arguments));'
+  str += 'this.init.apply(this, args);'
   str += '}'
   str += '}'
   return str
@@ -238,7 +263,9 @@ MethodDecl.prototype.trans = function () {
   str += this.m
   str += '"]'
   str += ' = function '
-  str += '(' + this.xs.join(',') + ') {'
+
+  var comma = this.xs.length > 0 ? ',' : ''
+  str += '(_fnCounter' + comma + this.xs.join(',') + ') {'
   str += 'var _thisClass = ' + this.C + ';'
 
   var hasReturn = false
@@ -260,8 +287,7 @@ MethodDecl.prototype.trans = function () {
 }
 
 VarDecl.prototype.trans = function () {
-  var str = ''
-  str += 'var '
+  var str = 'var '
   str += this.x
   str += ' = '
   str += this.e.trans()
@@ -283,7 +309,7 @@ Return.prototype.trans = function () {
   str += 'try {'
   str += 'return ' + this.e.trans() + ';'
   str += '} catch (e) {'
-  str += 'if (e instanceof BlockException) {'
+  str += 'if (e instanceof BlockException && e.id === _fnCounter) {'
   str += 'return e.val;'
   str += '} else {'
   str += 'throw e;'
