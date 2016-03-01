@@ -170,6 +170,15 @@ tests(O,
                                       'def B.n() { return super.m(); }\n' +
                                                 '(new B()).n()',
                                                   expected: 42
+  },
+  {
+      name: 'non-local return throws error if enclosing method has already returned',
+        code: 'def Obj.m() {\n' +
+                  '  return { return 42; };\n' +
+                            '}\n' +
+                                      '\n'+
+                                                'new Obj().m().call()\n',
+                                                  shouldThrow: true
   }
 );
 
