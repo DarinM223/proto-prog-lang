@@ -349,6 +349,11 @@ L {
           </sidebar>
           Your implementation will be conceptually similar, except that it will imperatively update
           a given substitution as it goes rather than returning a new substitution.
+          Also, make sure to implement the <a
+    href="http://en.wikipedia.org/wiki/Occurs_check">occurs check</a>,
+    which is not shown below.
+            </li>
+
           <style>
             pseudocode {
               display: inline-block;
@@ -535,10 +540,6 @@ insertPlayground(
               recommended reading: Ron Ferguson&rsquo;s
               <a href="http://tinlizzie.org/~awarth/prolog-ferguson81.pdf">Prolog: A Step Toward the
               Ultimate Computer Language</a>.
-            </li>
-            <li>
-              Do the <a href="http://en.wikipedia.org/wiki/Occurs_check">occurs check</a> in 
-              <code>Subst.prototype.unify</code>, then explain what it&rsquo;s for and how it works.
             </li>
             <li>
               Prolog finds solutions to a query by doing a depth-first search. Experiment with a
