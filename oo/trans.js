@@ -82,7 +82,6 @@ class Block extends Obj {
 }
 
 Block.prototype.call = function (_) {
-  console.log("Arguments: ", arguments)
   return this.fn.apply(this.obj, arguments)
 }
 
@@ -197,7 +196,6 @@ SuperSend.prototype.trans = function () {
 BlockLit.prototype.trans = function () {
   var str = ''
   str += '((_fnCounter) => {'
-  str += 'console.log("FN Counter start: ", _fnCounter);'
   str += 'return (new Block(this, ('
   str += ['_'].concat(this.xs).join(',')
   str += ') => {'
@@ -205,7 +203,6 @@ BlockLit.prototype.trans = function () {
   for (var i = 0; i < this.ss.length - 1; i++) {
     var statement = this.ss[i]
     if (statement instanceof Return) {
-      str += 'console.log("FN Counter call: ", _fnCounter);'
       str += 'throw new BlockException(_fnCounter, ' + statement.e.trans() + ');'
     } else {
       str += statement.trans()
@@ -214,7 +211,6 @@ BlockLit.prototype.trans = function () {
 
   var lastStatement = this.ss[i]
   if (lastStatement instanceof Return) {
-    str += 'console.log("FN Counter call: ", _fnCounter);'
     str += 'throw new BlockException(_fnCounter, ' + lastStatement.e.trans() + ');'
   } else if (lastStatement instanceof ExpStmt) {
     str += 'return ' + lastStatement.e.trans() + ';'
@@ -275,7 +271,16 @@ MethodDecl.prototype.trans = function () {
     if (statement instanceof Return) {
       hasReturn = true
     }
+
+    str += 'try {'
     str += statement.trans()
+    str += '} catch (e) {'
+    str += 'if (e instanceof BlockException && e.id === _fnCounter) {'
+    str += 'return e.val;'
+    str += '} else {'
+    str += 'throw e;'
+    str += '}'
+    str += '}'
   }
 
   if (!hasReturn) {
@@ -305,17 +310,7 @@ InstVarAssign.prototype.trans = function () {
 }
 
 Return.prototype.trans = function () {
-  var str = ''
-  str += 'try {'
-  str += 'return ' + this.e.trans() + ';'
-  str += '} catch (e) {'
-  str += 'if (e instanceof BlockException && e.id === _fnCounter) {'
-  str += 'return e.val;'
-  str += '} else {'
-  str += 'throw e;'
-  str += '}'
-  str += '}'
-  return str
+  return 'return ' + this.e.trans() + ';'
 }
 
 ExpStmt.prototype.trans = function () {
