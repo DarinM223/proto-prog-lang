@@ -14,6 +14,12 @@ What's In This Repo?
 
 -	`func/` - the Functional Language (homeworks 1 and 2)
 
+-	`pm/` - the Pattern Matching Language (homework 3)
+
+-	`oo/` - the Object-Oriented Language (homeworks 4 and 5)
+
+-	`log/` - the Logic Language (homework 6)
+
 Due Dates
 ---------
 
