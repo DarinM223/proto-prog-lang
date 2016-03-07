@@ -47,8 +47,45 @@ Var.prototype.rewrite = function (subst) {
 // Part II: Subst.prototype.unify(term1, term2)
 // -----------------------------------------------------------------------------
 
+Var.prototype.unifyClause = function (subst, clause) {
+  return subst.bind(this.name, clause)
+}
+
+Var.prototype.unifyVar = function (subst, variable) {
+  return subst.bind(this.name, variable)
+}
+
+Clause.prototype.unifyClause = function (subst, clause) {
+  if (this.name !== clause.name || this.args.length !== clause.args.length) {
+    throw new EvalError('Unification failed!')
+  }
+
+  for (var i = 0; i < this.args.length; i++) {
+    var arg1 = this.args[i]
+    var arg2 = clause.args[i]
+
+    subst = subst.unify(arg1, arg2)
+  }
+
+  return subst
+}
+
+Clause.prototype.unifyVar = function (subst, variable) {
+  return subst.bind(variable.name, this)
+}
+
 Subst.prototype.unify = function (term1, term2) {
-  throw new TODO('Subst.prototype.unify not implemented')
+  term1 = term1.rewrite(this)
+  term2 = term2.rewrite(this)
+
+  switch (term2.constructor) {
+    case Var:
+      return term1.unifyVar(this, term2)
+    case Clause:
+      return term1.unifyClause(this, term2)
+    default:
+      throw new EvalError('Unification type not a variable or clause')
+  }
 }
 
 // -----------------------------------------------------------------------------

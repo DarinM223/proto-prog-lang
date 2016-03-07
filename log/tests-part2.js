@@ -52,6 +52,12 @@ tests(
           '                  new Clause("f", [new Clause("a", []), new Var("X")]));',
     expected: new Subst().bind("X", new Clause("a", []))
                          .bind("Y", new Clause("a", []))
+  },
+  {
+    name: 'unify throw exception',
+    code: 'new Subst().unify(new Clause("foo", [new Var("X"),          new Clause("baz", [])]),' +
+                      'new Clause("foo", [new Clause("bar", []), new Var("X")]));',
+    shouldThrow: true
   }
 );
 
