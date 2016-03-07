@@ -22,11 +22,25 @@ Var.prototype.makeCopyWithFreshVarNames = function () {
 }
 
 Clause.prototype.rewrite = function (subst) {
-  throw new TODO('Clause.prototype.rewrite not implemented')
+  return new Clause(this.name, this.args.map(function (arg) {
+    return arg.rewrite(subst)
+  }))
 }
 
 Var.prototype.rewrite = function (subst) {
-  throw new TODO('Var.prototype.rewrite not implemented')
+  var result = null
+
+  for (var varName in subst.bindings) {
+    if (varName === this.name) {
+      result = subst.bindings[varName]
+    }
+  }
+
+  if (result !== null) {
+    return result
+  } else {
+    return this
+  }
 }
 
 // -----------------------------------------------------------------------------
