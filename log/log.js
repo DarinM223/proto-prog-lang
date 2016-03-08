@@ -92,7 +92,126 @@ Subst.prototype.unify = function (term1, term2) {
 // Part III: Program.prototype.solve()
 // -----------------------------------------------------------------------------
 
+Var.prototype.equals = function (term) {
+  if (term instanceof Var) {
+    return this.name === term.name
+  }
+
+  return false
+}
+
+Clause.prototype.equals = function (term) {
+  if (term instanceof Clause) {
+    if (this.name === term.name &&
+        this.args.length === term.args.length) {
+      for (var i = 0; i < this.args.length; i++) {
+        var arg1 = this.args[i]
+        var arg2 = term.args[i]
+
+        if (!arg1.equals(arg2)) {
+          return false
+        }
+      }
+
+      return true
+    }
+  }
+
+  return false
+}
+
+Subst.prototype.contains = function (subst) {
+  for (var name in this.bindings) {
+    if (!this.lookup(name).equals(subst.lookup(name))) {
+      return false
+    }
+  }
+
+  return true
+}
+
+Subst.prototype.equals = function (subst) {
+  return this.contains(subst) && subst.contains(subst)
+}
+
+Subst.prototype.rewrite = function () {
+  var substClone = this.clone()
+
+  for (var name in substClone.bindings) {
+    var term = substClone.lookup(name)
+    substClone.bindings[name] = term.rewrite(substClone)
+  }
+
+  var subst = this
+  while (!subst.equals(substClone)) {
+    subst = substClone
+    for (name in substClone.bindings) {
+      term = substClone.lookup(name)
+      substClone.bindings[name] = term.rewrite(substClone)
+    }
+  }
+
+  return subst
+}
+
+function Iterator (rules, query) {
+  this.rules = rules
+  this.query = query
+  this.substList = []
+}
+
+Iterator.prototype.next = function () {
+  try {
+    var ans = solve(this.rules, this.query, 0, new Subst(), this.substList)
+    this.substList.push(ans)
+    return ans.rewrite().rewrite()
+  } catch (e) {
+    return false
+  }
+}
+
+function solve (rules, query, index, subst, substList) {
+  var tempQuery = query[index].rewrite(subst)
+
+  for (var i = 0; i < rules.length; i++) {
+    var substClone = subst.clone()
+    var tempRule = rules[i].makeCopyWithFreshVarNames()
+    var newRules = rules.map(function (rule) {
+      return rule.makeCopyWithFreshVarNames()
+    })
+
+    try {
+      substClone.unify(tempRule.head, tempQuery)
+
+      if (tempRule.body.length !== 0) {
+        substClone = solve(newRules, tempRule.body, 0, substClone, substList)
+      }
+
+      var containsSubst = false
+      for (var j = 0; j < substList.length; j++) {
+        if (substList[j].equals(substClone)) {
+          containsSubst = true
+          break
+        }
+      }
+      if (containsSubst === true) {
+        continue
+      }
+
+      if (index < query.length - 1) {
+        substClone = solve(newRules, query, index + 1, substClone, substList)
+      }
+
+      return substClone
+    } catch (e) {
+      continue
+    }
+  }
+
+  throw new EvalError('Solve failure')
+}
+
 Program.prototype.solve = function () {
-  throw new TODO('Program.prototype.solve not implemented')
+  return new Iterator(this.rules, this.query)
 }
 
