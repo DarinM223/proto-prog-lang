@@ -1,28 +1,20 @@
-CS137/237A: Prototyping Programming Languages
-=============================================
+Prototyping Programming Languages
+=================================
 
-Homework assignments and other course materials for CS137/237A (UCLA, Winter 2016).
+Homework for a prototyping programming languages course where I had to write interpreters, transpilers,
+and language extensions for functional, object oriented, and declarative languages.
 
-**Important:** the contents of this repository are only for students who are enrolled in this class. Please do not share these files, post them publicly, etc.
+Each of the following folders contains an index.html file
+that shows the test cases and a browser based REPL to test code in.
 
-What's In This Repo?
---------------------
+func/ contains the files for an interpreter for an OCaml style functional language. 
+The main interpreter file is func/interp.js
 
--	`calc/` - the Calculator Language warm-up project
+oo/ contains the files for a transpiler for a Smalltalk style oop language.
+The main transpiler file is oo/trans.js
 
--	`js/` - JS primer
+pm/ contains the files for a pattern matching extension for Javascript.
+The main file is pm/match.js
 
--	`func/` - the Functional Language (homeworks 1 and 2)
-
--	`pm/` - the Pattern Matching Language (homework 3)
-
--	`oo/` - the Object-Oriented Language (homeworks 4 and 5)
-
--	`log/` - the Logic Language (homework 6)
-
-Due Dates
----------
-
--	The *Calculator* warm-up project (`calc/`) is not due, but you should do it anyway as it's good preparation for the following homework assignments.
-
--	**HW #1, *Functional Language, Part 1* (`func/`) is due Wednesday, Jan. 20th, at 11:30pm.**
+log/ contains the files for a declarative extension for Javascript.
+The main file is log/log.js
